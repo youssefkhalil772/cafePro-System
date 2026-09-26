@@ -666,9 +666,9 @@ ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
       const tempFile = path.join(app.getPath('temp'), `thermal_print_${Date.now()}.html`);
       fs.writeFileSync(tempFile, html, 'utf8');
 
-      // 302px = 80mm at 96dpi — forces HTML width:100% to equal exactly 80mm
+      // 320px = slight oversize to avoid right-edge clip — forces HTML width:100% to equal exactly 80mm
       const printWin = new BrowserWindow({
-        width: 302,
+        width: 320,
         height: 900,
         show: false,
         webPreferences: { nodeIntegration: false, contextIsolation: false, sandbox: false }
