@@ -2141,7 +2141,7 @@ function buildKitchenTicketStandaloneHTML(diffItems = null) {
     }
     .thermal-page {
       width: 100%;
-      padding: 2mm 1.5mm 2mm 2mm;
+      padding: 2mm 6mm 2mm 2mm;
       box-sizing: border-box;
       direction: rtl;
       text-align: right;
@@ -2616,7 +2616,7 @@ function buildReceiptStandaloneHTML(inv) {
 '    }' +
 '    .thermal-page {' +
 '      width: 100%;' +
-'      padding: 2mm 1.5mm 2mm 2mm;' +
+'      padding: 2mm 6mm 2mm 2mm;' +
 '      box-sizing: border-box;' +
 '      direction: rtl;' +
 '      text-align: right;' +
