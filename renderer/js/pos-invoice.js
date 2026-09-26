@@ -1887,7 +1887,7 @@ async function executeConfirmedCheckout(withPrint = true) {
     if (isTakeaway) {
       try {
         await printKitchenTicket(invoiceItems);
-        await new Promise(r => setTimeout(r, 250));
+        await new Promise(r => setTimeout(r, 700));
       } catch (kErr) { console.error('Kitchen ticket print error:', kErr); }
 
       if (withPrint) {
@@ -1936,7 +1936,7 @@ async function fastCashCheckout() {
     if (isTakeaway) {
       try {
         await printKitchenTicket(itemsSnapshot);
-        await new Promise(r => setTimeout(r, 250));
+        await new Promise(r => setTimeout(r, 700));
       } catch (kErr) { console.error('Kitchen ticket print error:', kErr); }
       await directPrintReceipt(false, false);
     } else {
@@ -2042,7 +2042,7 @@ async function sendOrderToKitchen() {
 }
 
 async function printKitchenTicket(diffItems = null) {
-  const container = document.getElementById('posThermalPrintContainer') || document.getElementById('kitchenPrint');
+  const container = document.getElementById('kitchenPrint') || document.getElementById('posThermalPrintContainer');
   if (!container) return;
 
   const time = new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
@@ -2107,11 +2107,13 @@ async function printKitchenTicket(diffItems = null) {
     </div>
   `;
 
+  // Set printing class so CSS displays ONLY kitchenPrint
+  document.body.classList.add('printing-kitchen');
+  document.body.classList.remove('printing-receipt');
+
   const kitchenPrinter = settings.printer_kitchen || '';
-  await new Promise(r => setTimeout(r, 120));
+  await new Promise(r => setTimeout(r, 150));
   await window.electron.print(kitchenPrinter ? { deviceName: kitchenPrinter } : {});
-  await new Promise(r => setTimeout(r, 250));
-  container.innerHTML = '';
 }
 
 // ─── Actual Save Invoice ──────────────────────────────────────────────────────
@@ -2536,19 +2538,18 @@ async function directPrintReceipt(withWhatsApp = false, resetAfter = true) {
       remaining: parseFloat(document.getElementById('remainingDisplay')?.textContent) || 0
     };
     const receiptHTML = buildReceiptHTML(inv);
-    const container = document.getElementById('posThermalPrintContainer') || document.getElementById('receiptPrint');
+    const container = document.getElementById('receiptPrint') || document.getElementById('posThermalPrintContainer');
     if (container) {
       container.innerHTML = receiptHTML;
     }
     
+    // Set printing class so CSS displays ONLY receiptPrint
+    document.body.classList.add('printing-receipt');
+    document.body.classList.remove('printing-kitchen');
+
     // Print directly using configured printer if available
-    await new Promise(r => setTimeout(r, 120));
+    await new Promise(r => setTimeout(r, 150));
     await window.electron.print(settings.printer_receipt ? { deviceName: settings.printer_receipt } : {});
-    await new Promise(r => setTimeout(r, 300));
-    
-    if (container) {
-      container.innerHTML = '';
-    }
 
     if (withWhatsApp) {
       await sendWhatsApp();
