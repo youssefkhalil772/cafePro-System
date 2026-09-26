@@ -159,7 +159,18 @@ function printCurrentSection(mode) {
     html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${title}</title>
     <style>
       @page { size: 80mm auto; margin: 0; }
-      body { font-family: 'Arial', sans-serif; font-size: 14px; color: #000; direction: rtl; padding: 3mm 2mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Cairo', 'Arial', sans-serif;
+        font-size: 13px;
+        color: #000;
+        direction: rtl;
+        width: 70mm;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 3mm 4mm;
+        box-sizing: border-box;
+      }
       .center { text-align:center; }
       .bold { font-weight:900; }
       .line { border-top:1px dashed #000; margin:5px 0; }

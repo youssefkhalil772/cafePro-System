@@ -2041,10 +2041,25 @@ async function sendOrderToKitchen() {
   }
 }
 
-async function printKitchenTicket(diffItems = null) {
-  const container = document.getElementById('kitchenPrint') || document.getElementById('posThermalPrintContainer');
-  if (!container) return;
+function printThermalDocument(html, frameId = 'posThermalFrame') {
+  let iframe = document.getElementById(frameId);
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = frameId;
+    iframe.style.cssText = 'position:fixed;right:-9999px;bottom:-9999px;width:72mm;height:100px;border:none;';
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  }, 350);
+}
 
+function buildKitchenTicketStandaloneHTML(diffItems = null) {
   const time = new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
   const tblName = getSelectedTableName();
 
@@ -2053,7 +2068,7 @@ async function printKitchenTicket(diffItems = null) {
     : (currentOrderType === 'دليفري' ? '🛵 دليفري' : '🥡 سفري / تيك أواي');
 
   const itemsToPrint = diffItems && diffItems.length ? diffItems : invoiceItems;
-  if (!itemsToPrint || !itemsToPrint.length) return;
+  if (!itemsToPrint || !itemsToPrint.length) return '';
 
   const invNum = currentInvoiceNumber || (lastSavedInvoice?.invoiceNumber) || '';
 
@@ -2078,42 +2093,67 @@ async function printKitchenTicket(diffItems = null) {
     `;
   }).join('');
 
-  container.innerHTML = `
-    <div style="width:100%; max-width:100%; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; direction:rtl; text-align:right; padding:0; color:#000; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
-      <!-- Header: No logo, compact & bold -->
-      <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:3px;">
-        <div style="font-size:18px; font-weight:900; letter-spacing:0.5px;">🍳 بون مطبخ / بار</div>
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:900; margin-top:2px;">
-          <span>${orderTitle}</span>
-          <span>#${invNum}</span>
-        </div>
-        <div style="text-align:left; font-size:11px; font-weight:800; color:#333; margin-top:1px;">
-          الوقت: ${time}
-        </div>
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8">
+  <title>بون مطبخ / بار</title>
+  <style>
+    @page { size: 80mm auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      direction: rtl;
+      font-family: 'Cairo', Arial, sans-serif;
+      font-size: 13px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .thermal-page {
+      width: 70mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 3mm 4mm;
+      box-sizing: border-box;
+      direction: rtl;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="thermal-page">
+    <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:3px;">
+      <div style="font-size:18px; font-weight:900; letter-spacing:0.5px;">🍳 بون مطبخ / بار</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:900; margin-top:2px;">
+        <span>${orderTitle}</span>
+        <span>#${invNum}</span>
       </div>
-
-      <!-- Items Table -->
-      <table style="width:100%; border-collapse:collapse; text-align:right; margin:2px 0;">
-        <thead>
-          <tr style="border-bottom:2px solid #000; font-size:13px; font-weight:900;">
-            <th style="padding:2px 0; text-align:right;">الصنف والتخصيص</th>
-            <th style="text-align:center; width:48px; padding:2px 0;">الكمية</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsRows}
-        </tbody>
-      </table>
+      <div style="text-align:left; font-size:11px; font-weight:800; color:#333; margin-top:1px;">
+        الوقت: ${time}
+      </div>
     </div>
-  `;
+    <table style="width:100%; border-collapse:collapse; text-align:right; margin:2px 0;">
+      <thead>
+        <tr style="border-bottom:2px solid #000; font-size:13px; font-weight:900;">
+          <th style="padding:2px 0; text-align:right;">الصنف والتخصيص</th>
+          <th style="text-align:center; width:48px; padding:2px 0;">الكمية</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsRows}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+}
 
-  // Set printing class so CSS displays ONLY kitchenPrint
-  document.body.classList.add('printing-kitchen');
-  document.body.classList.remove('printing-receipt');
-
-  const kitchenPrinter = settings.printer_kitchen || '';
-  await new Promise(r => setTimeout(r, 150));
-  await window.electron.print(kitchenPrinter ? { deviceName: kitchenPrinter } : {});
+function printKitchenTicket(diffItems = null) {
+  const html = buildKitchenTicketStandaloneHTML(diffItems);
+  if (!html) return;
+  printThermalDocument(html, 'posKitchenFrame');
 }
 
 // ─── Actual Save Invoice ──────────────────────────────────────────────────────
@@ -2526,7 +2566,46 @@ function printAndReset() {
   printReceipt(false);
 }
 
-async function directPrintReceipt(withWhatsApp = false, resetAfter = true) {
+function buildReceiptStandaloneHTML(inv) {
+  const content = buildReceiptHTML(inv);
+  return '<!DOCTYPE html>' +
+'<html dir="rtl" lang="ar">' +
+'<head>' +
+'  <meta charset="utf-8">' +
+'  <title>فاتورة</title>' +
+'  <style>' +
+'    @page { size: 80mm auto; margin: 0; }' +
+'    * { box-sizing: border-box; margin: 0; padding: 0; }' +
+'    html, body {' +
+'      width: 100%;' +
+'      background: #fff;' +
+'      color: #000;' +
+'      direction: rtl;' +
+'      font-family: Arial, "Cairo", sans-serif;' +
+'      font-size: 13px;' +
+'      -webkit-print-color-adjust: exact;' +
+'      print-color-adjust: exact;' +
+'    }' +
+'    .thermal-page {' +
+'      width: 70mm;' +
+'      max-width: 100%;' +
+'      margin: 0 auto;' +
+'      padding: 3mm 4mm;' +
+'      box-sizing: border-box;' +
+'      direction: rtl;' +
+'      text-align: right;' +
+'    }' +
+'  </style>' +
+'</head>' +
+'<body>' +
+'  <div class="thermal-page">' +
+     content +
+'  </div>' +
+'</body>' +
+'</html>';
+}
+
+function directPrintReceipt(withWhatsApp = false, resetAfter = true) {
   try {
     const inv = lastSavedInvoice || {
       items: invoiceItems,
@@ -2537,27 +2616,16 @@ async function directPrintReceipt(withWhatsApp = false, resetAfter = true) {
       amount_paid: parseFloat(document.getElementById('amountPaid')?.value) || 0,
       remaining: parseFloat(document.getElementById('remainingDisplay')?.textContent) || 0
     };
-    const receiptHTML = buildReceiptHTML(inv);
-    const container = document.getElementById('receiptPrint') || document.getElementById('posThermalPrintContainer');
-    if (container) {
-      container.innerHTML = receiptHTML;
-    }
-    
-    // Set printing class so CSS displays ONLY receiptPrint
-    document.body.classList.add('printing-receipt');
-    document.body.classList.remove('printing-kitchen');
-
-    // Print directly using configured printer if available
-    await new Promise(r => setTimeout(r, 150));
-    await window.electron.print(settings.printer_receipt ? { deviceName: settings.printer_receipt } : {});
+    const html = buildReceiptStandaloneHTML(inv);
+    printThermalDocument(html, 'posReceiptFrame');
 
     if (withWhatsApp) {
-      await sendWhatsApp();
+      sendWhatsApp();
     }
     
     // Start fresh invoice after direct printing/messaging if requested
     if (resetAfter) {
-      await newInvoice();
+      newInvoice();
     }
   } catch (err) {
     showToast('حدث خطأ في الطباعة: ' + err.message, 'error');
