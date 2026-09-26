@@ -2187,8 +2187,12 @@ async function doSaveInvoice(checkoutData, isPrint = false) {
   const discountPct = parseFloat(document.getElementById('discountPercent')?.value) || 0;
   const netText = document.getElementById('netTotalDisplay')?.textContent || '0';
   const netTotal = parseFloat(netText.replace(/[^\d.]/g, '')) || 0;
-  const amtPaid = Number(checkoutData.amount_paid || 0);
+  const amtPaidRaw = Number(checkoutData.amount_paid || 0);
+  // Cap paid at net_total: customer overpayment means change is given back, not recorded as extra revenue
+  const amtPaid = amtPaidRaw > netTotal ? netTotal : amtPaidRaw;
   const remaining = Math.max(0, netTotal - amtPaid);
+  // Store the actual cash received for display (change due shown in UI before save)
+  const cashReceived = amtPaidRaw;
 
   const tableId = currentOrderType === 'صالة' ? (parseInt(document.getElementById('posTableSelect')?.value) || null) : null;
   const driverId = currentOrderType === 'دليفري' ? (parseInt(document.getElementById('posDriverSelect')?.value) || null) : null;
@@ -2237,7 +2241,8 @@ async function doSaveInvoice(checkoutData, isPrint = false) {
       items:[...invoiceItems], 
       invoiceNumber:res.data.invoiceNumber,
       customer_phone: custPhone,
-      customer_name: custName
+      customer_name: custName,
+      cash_received: cashReceived
     };
 
     await reloadServicesStock();
@@ -2449,7 +2454,7 @@ function buildReceiptHTML(inv) {
         <div style="font-size:13px; font-weight:900; line-height:1.2; color:#000;">
           ${escapeHtml(item.service_name)}
         </div>
-        ${item.notes ? `<div style="font-size:11px; font-weight:800; color:#333; margin-top:1px;">↳ ${escapeHtml(item.notes)}</div>` : ''}
+        ${item.notes?.trim() ? `<div style="font-size:11px; font-weight:800; color:#333; margin-top:1px;">↳ ${escapeHtml(item.notes)}</div>` : ''}
       </td>
       <td style="text-align:center; padding:3px 1px; font-size:14px; font-weight:900; vertical-align:middle; width:38px;">
         ${item.quantity}
@@ -2555,6 +2560,11 @@ function buildReceiptHTML(inv) {
         <span>المدفوع: ${paid} ${curr}</span>
         <span>${parseFloat(inv.remaining || 0) > 0 ? `المتبقي: ${remaining}` : `الباقي: 0.00`} ${curr}</span>
       </div>
+      ${(inv.cash_received && parseFloat(inv.cash_received) > parseFloat(inv.net_total || 0)) ? `
+      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-top:2px; color:#166534;">
+        <span>المستلم: ${fmt(inv.cash_received)} ${curr}</span>
+        <span>الفكة: ${fmt(parseFloat(inv.cash_received) - parseFloat(inv.net_total || 0))} ${curr}</span>
+      </div>` : ''}
 
       ${notesHTML}
       <div style="border-top:1px dashed #000; margin:3px 0 2px;"></div>
