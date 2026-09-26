@@ -656,6 +656,52 @@ ipcMain.handle('inventory:printBarcodeLabels', async (_, items, copies = 1) => {
 
 
 // â”€â”€â”€ File Dialog IPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// --- Thermal / Receipt Silent Print IPC ---
+ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
+  return new Promise((resolve) => {
+    try {
+      const printWin = new BrowserWindow({
+        show: false,
+        webPreferences: { nodeIntegration: false, contextIsolation: true }
+      });
+
+      printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+
+      printWin.webContents.on('did-finish-load', () => {
+        setTimeout(() => {
+          const printOpts = {
+            silent: true,
+            printBackground: true,
+            color: false,
+            margins: { marginType: 'none' }
+          };
+          if (printerName && printerName.trim()) {
+            printOpts.deviceName = printerName.trim();
+          }
+          printWin.webContents.print(printOpts, (success, err) => {
+            printWin.destroy();
+            resolve({ success, error: err || null });
+          });
+        }, 200);
+      });
+
+      printWin.webContents.on('did-fail-load', (e, code, desc) => {
+        printWin.destroy();
+        resolve({ success: false, error: desc });
+      });
+
+      setTimeout(() => {
+        if (!printWin.isDestroyed()) {
+          printWin.destroy();
+          resolve({ success: false, error: 'Timeout' });
+        }
+      }, 30000);
+    } catch (e) {
+      resolve({ success: false, error: e.message });
+    }
+  });
+});
 ipcMain.handle('dialog:showSaveDialog', async (_, options) => {
   return dialog.showSaveDialog(mainWindow, options);
 });

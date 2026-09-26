@@ -150,6 +150,9 @@ contextBridge.exposeInMainWorld('electron', {
   selectFolder: () => ipcRenderer.invoke('app:selectFolder'),
   generateAndSendReport: (opts) => ipcRenderer.invoke('app:generateAndSendReport', opts),
 
+  // Silent thermal printing — no dialog
+  printThermal: (html, printerName) => ipcRenderer.invoke('print:thermal', { html, printerName: printerName || '' }),
+
   // Quit flow — listen for backup confirmation from main process
   onConfirmBackupBeforeQuit: (callback) => {
     ipcRenderer.on('confirm-backup-before-quit', () => callback());

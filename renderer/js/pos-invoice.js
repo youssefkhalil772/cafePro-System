@@ -2041,7 +2041,27 @@ async function sendOrderToKitchen() {
   }
 }
 
-function printThermalDocument(html, frameId = 'posThermalFrame') {
+// Helper: strip status like (مشغولة) / (فاضية) from table name
+function getCleanTableName(name) {
+  if (!name) return '';
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+async function printThermalDocument(html, frameId = 'posThermalFrame') {
+  // Try silent IPC print first (no dialog)
+  if (window.electron && typeof window.electron.printThermal === 'function') {
+    const printerKey = frameId === 'posKitchenFrame' ? 'printer_kitchen' : 'printer_receipt';
+    const printerName = (settings && settings[printerKey]) ? settings[printerKey] : (settings && settings.printer_receipt ? settings.printer_receipt : '');
+    try {
+      const result = await window.electron.printThermal(html, printerName);
+      if (result && result.success) return;
+      // Fall through to iframe if silent print fails
+      console.warn('Silent print failed:', result && result.error);
+    } catch (e) {
+      console.warn('printThermal IPC error:', e);
+    }
+  }
+  // Fallback: iframe print (shows dialog)
   let iframe = document.getElementById(frameId);
   if (!iframe) {
     iframe = document.createElement('iframe');
@@ -2061,11 +2081,20 @@ function printThermalDocument(html, frameId = 'posThermalFrame') {
 
 function buildKitchenTicketStandaloneHTML(diffItems = null) {
   const time = new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
-  const tblName = getSelectedTableName();
+  const rawTableName = getSelectedTableName ? getSelectedTableName() : '';
+  const tblName = getCleanTableName(rawTableName);
 
-  const orderTitle = currentOrderType === 'صالة' 
-    ? `🍽️ صالة (${tblName || 'ترابيزة'})` 
-    : (currentOrderType === 'دليفري' ? '🛵 دليفري' : '🥡 سفري / تيك أواي');
+  let orderTitle, tableLabel;
+  if (currentOrderType === 'صالة') {
+    orderTitle = '🍽️ صالة';
+    tableLabel = tblName || 'ترابيزة';
+  } else if (currentOrderType === 'دليفري') {
+    orderTitle = '🛵 دليفري';
+    tableLabel = '';
+  } else {
+    orderTitle = '🥡 تيك أواي';
+    tableLabel = '';
+  }
 
   const itemsToPrint = diffItems && diffItems.length ? diffItems : invoiceItems;
   if (!itemsToPrint || !itemsToPrint.length) return '';
@@ -2125,13 +2154,11 @@ function buildKitchenTicketStandaloneHTML(diffItems = null) {
 <body>
   <div class="thermal-page">
     <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:3px;">
-      <div style="font-size:18px; font-weight:900; letter-spacing:0.5px;">🍳 بون مطبخ / بار</div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:900; margin-top:2px;">
-        <span>${orderTitle}</span>
+      <div style="font-size:20px; font-weight:900; letter-spacing:0.5px;">${orderTitle}</div>
+      ${tableLabel ? `<div style="font-size:17px; font-weight:900; margin-top:1px;">${tableLabel}</div>` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:900; margin-top:2px;">
+        <span>الوقت: ${time}</span>
         <span>#${invNum}</span>
-      </div>
-      <div style="text-align:left; font-size:11px; font-weight:800; color:#333; margin-top:1px;">
-        الوقت: ${time}
       </div>
     </div>
     <table style="width:100%; border-collapse:collapse; text-align:right; margin:2px 0;">
@@ -2384,7 +2411,7 @@ function buildReceiptHTML(inv) {
 
   // Logo: prominent and centered
   const safeLogo = settings.logo_path ? 'file:///' + settings.logo_path.replace(/\\/g, '/') : '';
-  const logoHTML = safeLogo ? `<div style="text-align:center; margin:0 auto 8px;"><img src="${safeLogo}" style="max-height:80px; max-width:220px; object-fit:contain; display:block; margin:0 auto;"></div>` : '';
+  const logoHTML = safeLogo ? `<div style="text-align:center; margin:0 auto 8px;"><img src="${safeLogo}" style="max-height:110px; max-width:260px; object-fit:contain; display:block; margin:0 auto;"></div>` : '';
   
   // Compact contact info
   let contactDetails = [];
@@ -2403,15 +2430,18 @@ function buildReceiptHTML(inv) {
     if (c && c.name && c.name !== 'عميل نقدي') custName = c.name;
   }
 
-  // Order type title
+  // Order type and table — clean, no status
+  const rawInvTable = inv.invoice_type === 'صالة' || currentOrderType === 'صالة'
+    ? getCleanTableName(getSelectedTableName ? getSelectedTableName() : '')
+    : '';
   let orderTypeStr = inv.invoice_type || currentOrderType || 'تيك أواي';
+  let orderTypeLine = '';
   if (orderTypeStr === 'صالة') {
-    const tblName = getSelectedTableName();
-    orderTypeStr = `🍽️ صالة (${tblName || 'ترابيزة'})`;
+    orderTypeLine = `🍽️ صالة — ${rawInvTable || 'ترابيزة'}`;
   } else if (orderTypeStr === 'دليفري') {
-    orderTypeStr = '🛵 دليفري';
+    orderTypeLine = '🛵 دليفري';
   } else {
-    orderTypeStr = '🥡 سفري';
+    orderTypeLine = '🥡 تيك أواي';
   }
 
   // Items: 3 compact columns with VERY BOLD typography
@@ -2460,14 +2490,16 @@ function buildReceiptHTML(inv) {
 
       <!-- Compact Meta Divider -->
       <div style="border-top:1.5px dashed #000; margin:2px 0;"></div>
-      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:900; line-height:1.3;">
-        <span>فاتورة: #${invNum}</span>
-        <span>${orderTypeStr}</span>
-      </div>
-      <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:#222; line-height:1.3;">
-        <span>${date} ${time}</span>
-        ${custName ? `<span>العميل: ${escapeHtml(custName)}</span>` : ''}
-      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:12px; font-weight:900; line-height:1.4;">
+        <tr>
+          <td style="text-align:right; padding:0;">فاتورة: #${invNum}</td>
+          <td style="text-align:left; padding:0;">${orderTypeLine}</td>
+        </tr>
+        <tr style="font-size:11px; font-weight:800; color:#222;">
+          <td style="text-align:right; padding:0;">${date} ${time}</td>
+          <td style="text-align:left; padding:0;">${custName ? `العميل: ${escapeHtml(custName)}` : ''}</td>
+        </tr>
+      </table>
       <div style="border-top:1.5px dashed #000; margin:2px 0;"></div>
 
       <!-- Items Table: Bold, clear, compact -->
