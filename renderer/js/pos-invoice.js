@@ -149,7 +149,7 @@ async function printInvoiceFromPosView() {
     ..._currentViewingInvoice,
     items: _currentViewingItems
   };
-  printReceipt(false);
+  await directPrintReceipt(false, false);
 }
 
 async function sendWhatsAppFromPosView() {
@@ -1881,21 +1881,23 @@ async function executeConfirmedCheckout(withPrint = true) {
   }, withPrint);
 
   if (success) {
-    if (currentOrderType === 'تيك أواي') {
+    const isWhatsApp = (pendingAction === 'savePrintAndWhatsApp');
+    const isTakeaway = (currentOrderType === 'تيك أواي');
+
+    if (isTakeaway) {
       try {
-        printKitchenTicket(invoiceItems);
+        await printKitchenTicket(invoiceItems);
+        await new Promise(r => setTimeout(r, 250));
       } catch (kErr) { console.error('Kitchen ticket print error:', kErr); }
 
       if (withPrint) {
-        setTimeout(() => {
-          printReceipt(false);
-        }, 400);
+        await directPrintReceipt(isWhatsApp, false);
       } else {
         showToast('تم حفظ الفاتورة وإرسال البون للمطبخ بنجاح ✓', 'success');
       }
     } else {
       if (withPrint) {
-        printReceipt(false);
+        await directPrintReceipt(isWhatsApp, false);
       } else {
         showToast('تم حفظ الفاتورة بنجاح ✓', 'success');
       }
@@ -1928,16 +1930,18 @@ async function fastCashCheckout() {
     payment_method: 'نقدي',
     treasury_type: 'الخزينة',
     amount_paid: netTotal
-  }, false);
+  }, true);
 
   if (success) {
     if (isTakeaway) {
       try {
-        printKitchenTicket(itemsSnapshot);
+        await printKitchenTicket(itemsSnapshot);
+        await new Promise(r => setTimeout(r, 250));
       } catch (kErr) { console.error('Kitchen ticket print error:', kErr); }
-      setTimeout(() => {
-        printReceipt(false);
-      }, 400);
+      await directPrintReceipt(false, false);
+    } else {
+      // In Dine-in (صالة) or Delivery: Print customer receipt immediately!
+      await directPrintReceipt(false, false);
     }
     showToast(`⚡ تم الدفع كاش سريع (${fmt(netTotal)} ج.م) بنجاح ✓`, 'success');
     if (settledTableId) {
@@ -2028,7 +2032,7 @@ async function sendOrderToKitchen() {
     document.getElementById('invoiceNumberDisplay').textContent = currentInvoiceNumber;
 
     // Silent print to Kitchen Thermal Printer: ONLY diff items
-    printKitchenTicket(diffItems);
+    await printKitchenTicket(diffItems);
     showToast('تم إرسال الأصناف الجديدة للمطبخ بنجاح 🍳', 'success');
     renderItemsTable();
     await loadTables();
@@ -2037,11 +2041,9 @@ async function sendOrderToKitchen() {
   }
 }
 
-function printKitchenTicket(diffItems = null) {
-  const container = document.getElementById('kitchenPrint');
+async function printKitchenTicket(diffItems = null) {
+  const container = document.getElementById('posThermalPrintContainer') || document.getElementById('kitchenPrint');
   if (!container) return;
-  const rp = document.getElementById('receiptPrint');
-  if (rp) rp.innerHTML = '';
 
   const time = new Date().toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
   const tblName = getSelectedTableName();
@@ -2051,12 +2053,15 @@ function printKitchenTicket(diffItems = null) {
     : (currentOrderType === 'دليفري' ? '🛵 دليفري' : '🥡 سفري / تيك أواي');
 
   const itemsToPrint = diffItems && diffItems.length ? diffItems : invoiceItems;
+  if (!itemsToPrint || !itemsToPrint.length) return;
+
+  const invNum = currentInvoiceNumber || (lastSavedInvoice?.invoiceNumber) || '';
 
   const itemsRows = itemsToPrint.map(it => {
     const printQty = it.diffQty !== undefined ? it.diffQty : it.quantity;
     return `
       <tr style="border-bottom:1.5px dashed #000;">
-        <td style="padding:4px 0; vertical-align:middle;">
+        <td style="padding:4px 0; vertical-align:middle; text-align:right;">
           <div style="font-size:16px; font-weight:900; line-height:1.2; color:#000;">
             ${escapeHtml(it.service_name)}
           </div>
@@ -2074,13 +2079,13 @@ function printKitchenTicket(diffItems = null) {
   }).join('');
 
   container.innerHTML = `
-    <div style="width:100%; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; direction:rtl; padding:1mm 2mm; color:#000; margin:0 auto;">
+    <div style="width:100%; max-width:100%; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; direction:rtl; text-align:right; padding:0; color:#000; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact;">
       <!-- Header: No logo, compact & bold -->
       <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:3px; margin-bottom:3px;">
         <div style="font-size:18px; font-weight:900; letter-spacing:0.5px;">🍳 بون مطبخ / بار</div>
         <div style="display:flex; justify-content:space-between; align-items:center; font-size:15px; font-weight:900; margin-top:2px;">
           <span>${orderTitle}</span>
-          <span>#${currentInvoiceNumber}</span>
+          <span>#${invNum}</span>
         </div>
         <div style="text-align:left; font-size:11px; font-weight:800; color:#333; margin-top:1px;">
           الوقت: ${time}
@@ -2091,7 +2096,7 @@ function printKitchenTicket(diffItems = null) {
       <table style="width:100%; border-collapse:collapse; text-align:right; margin:2px 0;">
         <thead>
           <tr style="border-bottom:2px solid #000; font-size:13px; font-weight:900;">
-            <th style="padding:2px 0;">الصنف والتخصيص</th>
+            <th style="padding:2px 0; text-align:right;">الصنف والتخصيص</th>
             <th style="text-align:center; width:48px; padding:2px 0;">الكمية</th>
           </tr>
         </thead>
@@ -2103,7 +2108,10 @@ function printKitchenTicket(diffItems = null) {
   `;
 
   const kitchenPrinter = settings.printer_kitchen || '';
-  window.electron.print({ deviceName: kitchenPrinter });
+  await new Promise(r => setTimeout(r, 120));
+  await window.electron.print(kitchenPrinter ? { deviceName: kitchenPrinter } : {});
+  await new Promise(r => setTimeout(r, 250));
+  container.innerHTML = '';
 }
 
 // ─── Actual Save Invoice ──────────────────────────────────────────────────────
@@ -2390,13 +2398,15 @@ function buildReceiptHTML(inv) {
 
   return `
     <div class="receipt" style="
-      width:68mm;
+      width:100%;
+      max-width:100%;
       box-sizing:border-box;
       font-family:'Cairo',Arial,sans-serif;
       color:#000;
       direction:rtl;
-      padding:1mm 2mm;
-      margin:0 auto;
+      text-align:right;
+      padding:0;
+      margin:0;
       -webkit-print-color-adjust:exact;
       print-color-adjust:exact;
     ">
@@ -2514,38 +2524,47 @@ function printAndReset() {
   printReceipt(false);
 }
 
-async function directPrintReceipt(withWhatsApp = false) {
+async function directPrintReceipt(withWhatsApp = false, resetAfter = true) {
   try {
     const inv = lastSavedInvoice || {
       items: invoiceItems,
-      invoice_date: document.getElementById('invoiceDate').value,
-      subtotal: parseFloat(document.getElementById('subtotalDisplay').textContent) || 0,
-      discount_amount: parseFloat(document.getElementById('discountAmount').value) || 0,
-      net_total: parseFloat(document.getElementById('netTotalDisplay').textContent) || 0,
-      amount_paid: parseFloat(document.getElementById('amountPaid').value) || 0,
-      remaining: parseFloat(document.getElementById('remainingDisplay').textContent) || 0
+      invoice_date: document.getElementById('invoiceDate')?.value || getLocalISODate(),
+      subtotal: parseFloat(document.getElementById('subtotalDisplay')?.textContent) || 0,
+      discount_amount: parseFloat(document.getElementById('discountAmount')?.value) || 0,
+      net_total: parseFloat(document.getElementById('netTotalDisplay')?.textContent) || 0,
+      amount_paid: parseFloat(document.getElementById('amountPaid')?.value) || 0,
+      remaining: parseFloat(document.getElementById('remainingDisplay')?.textContent) || 0
     };
     const receiptHTML = buildReceiptHTML(inv);
-    document.getElementById('receiptPrint').innerHTML = receiptHTML;
+    const container = document.getElementById('posThermalPrintContainer') || document.getElementById('receiptPrint');
+    if (container) {
+      container.innerHTML = receiptHTML;
+    }
     
     // Print directly using configured printer if available
     await new Promise(r => setTimeout(r, 120));
     await window.electron.print(settings.printer_receipt ? { deviceName: settings.printer_receipt } : {});
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 300));
     
+    if (container) {
+      container.innerHTML = '';
+    }
+
     if (withWhatsApp) {
       await sendWhatsApp();
     }
     
-    // Start fresh invoice after direct printing/messaging
-    newInvoice();
+    // Start fresh invoice after direct printing/messaging if requested
+    if (resetAfter) {
+      await newInvoice();
+    }
   } catch (err) {
     showToast('حدث خطأ في الطباعة: ' + err.message, 'error');
   }
 }
 
-function printReceipt(withWhatsApp = false) {
-  directPrintReceipt(withWhatsApp);
+function printReceipt(withWhatsApp = false, resetAfter = true) {
+  return directPrintReceipt(withWhatsApp, resetAfter);
 }
 
 async function reloadServicesStock() {
@@ -2806,7 +2825,7 @@ async function reprintPastInvoice(inv) {
     customer_phone: inv.customer_phone
   };
   
-  printReceipt();
+  await directPrintReceipt(false, false);
 }
 
 // ─── POS Navigation / Cashier Logout ──────────────────────────────────────────

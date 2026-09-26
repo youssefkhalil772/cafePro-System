@@ -631,25 +631,43 @@
     }
 
     /* Print Templates (hidden on screen) */
-    .receipt-print, .kitchen-print { display: none; }
+    .receipt-print, .kitchen-print, .pos-thermal-print, #posThermalPrintContainer { display: none; }
     @media print {
       @page {
-        margin: 0;
+        margin: 0 !important;
         size: auto;
       }
-      html, body {
+      html {
+        width: 72mm !important;
+        max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
       }
-      body > *:not(.receipt-print):not(.kitchen-print) { display: none !important; }
-      .receipt-print, .kitchen-print {
+      body {
         display: block !important;
         width: 72mm !important;
         max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: 1mm 2mm !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
         direction: rtl !important;
+      }
+      body > *:not(#posThermalPrintContainer) { display: none !important; }
+      #posThermalPrintContainer {
+        display: block !important;
+        position: static !important;
+        width: 70mm !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 1mm 1.5mm !important;
+        box-sizing: border-box !important;
+        direction: rtl !important;
+        text-align: right !important;
+        overflow: visible !important;
         font-family: 'Cairo', Arial, sans-serif !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -1436,8 +1454,9 @@
   </div>
 
   <!-- ─── PRINT CONTAINERS (Customer Receipt + Kitchen Order Ticket) ───────── -->
-  <div class="receipt-print" id="receiptPrint"></div>
-  <div class="kitchen-print" id="kitchenPrint"></div>
+  <div class="pos-thermal-print" id="posThermalPrintContainer"></div>
+  <div class="receipt-print" id="receiptPrint" style="display:none !important;"></div>
+  <div class="kitchen-print" id="kitchenPrint" style="display:none !important;"></div>
 
   <!-- Toast -->
   <div class="toast-container" id="toastContainer"></div>
