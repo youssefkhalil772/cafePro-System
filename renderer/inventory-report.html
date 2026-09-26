@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>CafePro System — تقرير المخزون</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background:#fff; color:#1B2A4A; direction:rtl; }
+    @page { size:A4; margin:15mm; }
+    .report-header { text-align:center; border-bottom:3px solid #1B2A4A; padding-bottom:14px; margin-bottom:20px; }
+    .report-title  { font-size:22px; font-weight:900; color:#1B2A4A; }
+    .report-sub    { font-size:13px; color:#64748B; margin-top:4px; }
+    .report-meta   { font-size:11px; color:#64748B; margin-top:6px; }
+    .summary-grid  { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+    .summary-card  { border:1px solid #E2E8F0; border-radius:8px; padding:12px 14px; text-align:center; }
+    .summary-val   { font-size:18px; font-weight:900; color:#1B2A4A; }
+    .summary-lbl   { font-size:11px; color:#64748B; margin-top:3px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th { background:#1B2A4A; color:#fff; padding:8px 10px; text-align:right; font-weight:700; }
+    td { padding:7px 10px; border-bottom:1px solid #E2E8F0; }
+    tr:nth-child(even) td { background:#F8FAFC; }
+    .low-badge { background:#FEF3C7; color:#D97706; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700; }
+    .out-badge { background:#FEE2E2; color:#DC2626; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700; }
+    .ok-badge  { background:#D1FAE5; color:#059669; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:700; }
+    .section-title { font-size:15px; font-weight:800; color:#1B2A4A; margin:20px 0 10px; border-right:4px solid #C9A84C; padding-right:10px; }
+    .print-controls { position:fixed; top:16px; left:16px; display:flex; gap:8px; z-index:9999; }
+    .print-controls button { padding:8px 18px; border:none; border-radius:6px; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700; }
+    .btn-print { background:#1B2A4A; color:#fff; }
+    .btn-back  { background:#E2E8F0; color:#1B2A4A; }
+    @media print { .print-controls { display:none; } }
+    .variance-pos { color:#059669; font-weight:700; }
+    .variance-neg { color:#DC2626; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="print-controls">
+    <button class="btn-back" onclick="goBack()">← رجوع</button>
+    <button class="btn-print" onclick="window.print()">طباعة / PDF</button>
+  </div>
+
+  <div id="reportContent">
+    <div class="report-header">
+      <div class="report-title" id="rptTitle">تقرير المخزون الحي</div>
+      <div class="report-sub" id="rptSub">CafePro System</div>
+      <div class="report-meta" id="rptMeta">تاريخ الطباعة: —</div>
+    </div>
+
+    <div class="summary-grid" id="summaryGrid">
+      <div class="summary-card"><div class="summary-val" id="sumItems">—</div><div class="summary-lbl">إجمالي الأصناف</div></div>
+      <div class="summary-card"><div class="summary-val" id="sumQty">—</div><div class="summary-lbl">إجمالي الوحدات</div></div>
+      <div class="summary-card"><div class="summary-val" id="sumCostVal">—</div><div class="summary-lbl">قيمة المخزون (تكلفة)</div></div>
+      <div class="summary-card"><div class="summary-val" id="sumSellVal">—</div><div class="summary-lbl">قيمة المخزون (بيع)</div></div>
+    </div>
+
+    <div class="section-title" id="rptSectionTitle">تفاصيل الأصناف المخزنة</div>
+    <table id="rptTable">
+      <thead id="rptTHead"></thead>
+      <tbody id="rptTBody">
+        <tr><td colspan="8" style="text-align:center;padding:30px;color:#64748B;">جارٍ التحميل...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let sessionId = null;
+    try {
+      const searchStr = window.location.search ? window.location.search.replace(/^\?/, '') : '';
+      const hashStr = window.location.hash ? window.location.hash.replace(/^#/, '') : '';
+      const params = new URLSearchParams(searchStr || hashStr);
+      sessionId = params.get('session') || sessionStorage.getItem('view_stocktake_session_id');
+    } catch(e){}
+
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else if (window.electron && window.electron.navigate) {
+        window.electron.navigate('inventory.html');
+      }
+    }
+
+    function fmt(n) { return Number(n||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+    function fmtN(n) { return Number(n||0).toLocaleString('en-US'); }
+
+    function stockBadge(item) {
+      const qty = item.quantity || 0;
+      const thr = item.low_stock_threshold || 0;
+      if (qty <= 0)               return '<span class="out-badge">نفد</span>';
+      if (thr > 0 && qty <= thr) return '<span class="low-badge">منخفض</span>';
+      return '<span class="ok-badge">متاح</span>';
+    }
+
+    async function loadLiveReport() {
+      try {
+        document.getElementById('rptTitle').textContent = 'تقرير المخزون الحي';
+        document.getElementById('rptMeta').textContent = 'تاريخ الطباعة: ' + new Date().toLocaleString('ar-EG');
+
+        if (!window.inventory || !window.inventory.getLiveReport) {
+          throw new Error('خدمة المخزون غير متوفرة');
+        }
+
+        const res = await window.inventory.getLiveReport();
+        if (!res.success) { document.getElementById('rptTBody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:red;">خطأ في تحميل البيانات: ' + (res.error || '') + '</td></tr>'; return; }
+
+        const { items, totals } = res.data || { items: [], totals: {} };
+        document.getElementById('sumItems').textContent    = fmtN(totals.totalItems);
+        document.getElementById('sumQty').textContent      = fmtN(items.reduce((s,i) => s + (i.quantity||0), 0));
+        document.getElementById('sumCostVal').textContent  = fmt(totals.totalCost) + ' ج.م';
+        document.getElementById('sumSellVal').textContent  = fmt(totals.totalSell) + ' ج.م';
+
+        document.getElementById('rptTHead').innerHTML = `
+          <tr>
+            <th>#</th><th>الصنف</th><th>القسم</th><th>الباركود</th>
+            <th style="text-align:center;">الكمية</th>
+            <th style="text-align:right;">سعر الجملة</th>
+            <th style="text-align:right;">سعر البيع</th>
+            <th style="text-align:right;">قيمة المخزون</th>
+            <th style="text-align:center;">الحالة</th>
+          </tr>`;
+
+        document.getElementById('rptTBody').innerHTML = (items && items.length > 0) ? items.map((item, idx) => `
+          <tr>
+            <td>${idx+1}</td>
+            <td style="font-weight:700;">${item.name}</td>
+            <td>${item.category_name||'—'}</td>
+            <td><code style="font-size:10px;">${item.barcode||'—'}</code></td>
+            <td style="text-align:center; font-weight:700;">${item.quantity||0}</td>
+            <td style="text-align:right;">${fmt(item.cost_price)}</td>
+            <td style="text-align:right;">${fmt(item.sell_price)}</td>
+            <td style="text-align:right; font-weight:700;">${fmt(item.stock_value_cost)} ج.م</td>
+            <td style="text-align:center;">${stockBadge(item)}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="9" style="text-align:center;color:#64748B;">لا توجد أصناف</td></tr>';
+      } catch (err) {
+        document.getElementById('rptTBody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:red;padding:20px;">حدث خطأ: ' + err.message + '</td></tr>';
+      }
+    }
+
+    async function loadStocktakeReport(sid) {
+      try {
+        if (!window.inventory || !window.inventory.stocktakeGetReport) {
+          throw new Error('خدمة الجرد غير متوفرة');
+        }
+
+        const res = await window.inventory.stocktakeGetReport(parseInt(sid));
+        if (!res.success) { document.getElementById('rptTBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:red;padding:20px;">خطأ: ' + (res.error || 'تعذر تحميل التقرير') + '</td></tr>'; return; }
+
+        const { session, items } = res.data || { session: {}, items: [] };
+        document.getElementById('rptTitle').textContent = `تقرير جلسة الجرد #${session.id || sid}`;
+        const isDone = (session.status === 'completed' || session.status === 'مكتمل');
+        document.getElementById('rptSub').textContent   = `تاريخ البدء: ${session.start_date || session.started_at || '—'} · الحالة: ${isDone ? 'مكتملة' : 'جارية'}`;
+        document.getElementById('rptMeta').textContent  = session.notes || '';
+        document.getElementById('rptSectionTitle').textContent = 'تفاصيل الجرد';
+
+        // Hide summary grid (not applicable to stocktake)
+        document.getElementById('summaryGrid').style.display = 'none';
+
+        document.getElementById('rptTHead').innerHTML = `
+          <tr>
+            <th>#</th><th>الصنف</th><th>القسم</th><th>الباركود</th>
+            <th style="text-align:center;">كمية النظام</th>
+            <th style="text-align:center;">الكمية المعدودة</th>
+            <th style="text-align:center;">الفرق</th>
+          </tr>`;
+
+        document.getElementById('rptTBody').innerHTML = (items && items.length > 0) ? items.map((item, idx) => {
+          const variance = item.variance || 0;
+          const varHtml = variance > 0 ? `<span class="variance-pos">+${variance}</span>` :
+            variance < 0 ? `<span class="variance-neg">${variance}</span>` : '<span style="color:#94A3B8;">0</span>';
+          return `
+            <tr>
+              <td>${idx+1}</td>
+              <td style="font-weight:700;">${item.service_name||'—'}</td>
+              <td>${item.category_name||'—'}</td>
+              <td><code style="font-size:10px;">${item.barcode||'—'}</code></td>
+              <td style="text-align:center;">${item.system_quantity}</td>
+              <td style="text-align:center; font-weight:700;">${item.counted_quantity}</td>
+              <td style="text-align:center;">${varHtml}</td>
+            </tr>
+          `;
+        }).join('') : '<tr><td colspan="7" style="text-align:center;color:#64748B;">لا توجد بيانات</td></tr>';
+      } catch (err) {
+        document.getElementById('rptTBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:red;padding:20px;">حدث خطأ: ' + err.message + '</td></tr>';
+      }
+    }
+
+    // Decide which report to load
+    if (sessionId) {
+      loadStocktakeReport(sessionId);
+    } else {
+      loadLiveReport();
+    }
+  </script>
+</body>
+</html>

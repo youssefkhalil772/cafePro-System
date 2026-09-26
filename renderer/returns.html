@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>CafePro POS — المرتجعات</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <script src="../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+  <style>
+    .returns-layout {
+      display: flex;
+      height: 100vh;
+      flex-direction: column;
+      overflow: hidden;
+      background: #F8FAFC;
+    }
+
+    .returns-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Search Sidebar */
+    .returns-search-panel {
+      width: 320px;
+      background: #FFFFFF;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* Main Workspace */
+    .returns-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 14px 18px;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    /* ── Compact Invoice Info Bar (Takes very little vertical space) ── */
+    .invoice-info-bar {
+      background: #0F172A;
+      color: #FFFFFF;
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .inv-badge-chip {
+      background: #E4002B;
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .inv-meta-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+
+    .inv-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .inv-meta-item span {
+      color: #94A3B8;
+      font-size: 12px;
+    }
+
+    .inv-meta-item strong {
+      color: #F8FAFC;
+      font-weight: 700;
+    }
+
+    /* ── Compact Return Controls Toolbar ── */
+    .return-toolbar {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .return-stats-pills {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .stat-pill strong {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .stat-pill.danger strong {
+      color: #EF4444;
+    }
+
+    .return-inputs-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    /* ── Expanded Items Table (Takes MAXIMUM vertical space!) ── */
+    .items-table-container {
+      flex: 1;
+      min-height: 0;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .items-table-container table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+    }
+
+    .items-table-container th {
+      position: sticky;
+      top: 0;
+      background: #F8FAFC;
+      z-index: 10;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .items-table-container td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 13px;
+      color: #0F172A;
+    }
+
+    .items-table-container tr:hover td {
+      background: #FAFCFF;
+    }
+
+    /* ── Action Buttons Bar ── */
+    .return-actions-deck {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      padding: 2px 0;
+    }
+
+    /* ── Collapsible Returns History ── */
+    .history-section {
+      flex-shrink: 0;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .history-toggle-header {
+      padding: 8px 14px;
+      background: #F8FAFC;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      transition: background 0.12s ease;
+    }
+
+    .history-toggle-header:hover {
+      background: #F1F5F9;
+    }
+
+    .history-content {
+      max-height: 160px;
+      overflow-y: auto;
+      border-top: 1px solid var(--border);
+    }
+
+    .search-result-item {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 6px;
+      background: #FFFFFF;
+    }
+
+    .search-result-item:hover {
+      border-color: #E4002B;
+      background: rgba(228, 0, 43, 0.02);
+    }
+
+    .search-result-item .inv-num {
+      font-size: 13px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+
+    .search-result-item .inv-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="returns-layout">
+
+  <!-- Header -->
+  <header class="app-header" style="flex-shrink:0;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:34px; height:34px; background:rgba(228,0,43,0.08); border-radius:8px; display:flex; align-items:center; justify-content:center; color:#E4002B;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </div>
+      <div>
+        <div class="header-title" style="font-size:15px; font-weight:800;">إدارة المرتجعات واسترداد المبيعات</div>
+        <div class="header-subtitle" style="font-size:11px;">استرجاع جزئي أو كلي من الفواتير السابقة وإعادة الأصناف للمخزن تلقائياً</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" onclick="goBack()" style="font-weight:700;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        رجوع للرئيسية
+      </button>
+    </div>
+  </header>
+
+  <div class="returns-body">
+
+    <!-- Search Panel -->
+    <div class="returns-search-panel">
+      <div style="font-size:13px; font-weight:800; color:#0F172A;">بحث عن فاتورة بيع</div>
+
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label" style="font-size:11px;">رقم الفاتورة، اسم العميل أو التاريخ</label>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="searchQuery" class="form-control" placeholder="اكتب للبحث السريع..."
+            onkeydown="if(event.key==='Enter') searchInvoice()" oninput="searchInvoice()" autofocus />
+          <button class="btn btn-primary btn-sm" onclick="searchInvoice()" style="background:#0F172A; border-color:#0F172A;">بحث</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-top:4px;">نتائج البحث</div>
+      <div id="searchResults" style="flex:1; overflow-y:auto;">
+        <div class="table-empty" style="padding:24px 0; font-size:12px;">اكتب رقم الفاتورة أو اسم العميل للبحث</div>
+      </div>
+    </div>
+
+    <!-- Main Returns Area -->
+    <div class="returns-main">
+
+      <!-- Compact Horizontal Invoice Info Bar -->
+      <div id="invoiceInfoCard" style="display:none;" class="invoice-info-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="inv-badge-chip" id="invNumBadge">INV-0000</span>
+          <span style="font-size:12px; font-weight:700; color:#E2E8F0;">بيانات الفاتورة الأصلية:</span>
+        </div>
+        <div class="inv-meta-group">
+          <div class="inv-meta-item"><span>العميل:</span> <strong id="invCustomer">—</strong></div>
+          <div class="inv-meta-item"><span>التاريخ:</span> <strong id="invDate">—</strong></div>
+          <div class="inv-meta-item"><span>الإجمالي:</span> <strong id="invTotal" style="color:#38BDF8;">0</strong></div>
+          <div class="inv-meta-item"><span>المدفوع:</span> <strong id="invPaid" style="color:#4ADE80;">0</strong></div>
+          <div class="inv-meta-item"><span>الخزينة:</span> <strong id="invTreasury" style="color:#FBBF24;">—</strong></div>
+        </div>
+      </div>
+
+      <!-- Compact Return Controls & Stats Toolbar -->
+      <div class="return-toolbar" id="returnSummary" style="display:none;">
+        <div class="return-stats-pills">
+          <div class="stat-pill">الأصناف المحددة: <strong id="retTotalItems">0</strong></div>
+          <div class="stat-pill">إجمالي الكمية: <strong id="retTotalQty">0</strong></div>
+          <div class="stat-pill danger">قيمة المرتجع: <strong id="retTotalAmount">0.00</strong> ج.م</div>
+        </div>
+
+        <div class="return-inputs-inline">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label style="font-size:11px; font-weight:700; color:#475569; white-space:nowrap;">خزنة الاسترداد:</label>
+            <select id="returnTreasury" class="form-control" style="height:32px; font-size:12px; padding:0 8px; width:130px;">
+              <option value="الخزينة">الخزينة (نقدي)</option>
+              <option value="فودافون كاش">فودافون كاش</option>
+              <option value="إنستا باي">إنستا باي</option>
+            </select>
+            <span id="treasuryAutoHint" style="font-size:10px; color:#16A34A; font-weight:700;"></span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:6px; flex:1; max-width:260px;">
+            <input type="text" id="returnNotes" class="form-control" style="height:32px; font-size:12px; padding:0 10px;" placeholder="سبب الإرجاع (اختياري)..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Items Table (Expands to fill all remaining height) ── -->
+      <div class="items-table-container" id="itemsTableWrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px; text-align:center;">
+                <input type="checkbox" id="selectAllChk" onchange="toggleSelectAll(this.checked)" style="cursor:pointer; width:16px; height:16px; accent-color:#E4002B;" />
+              </th>
+              <th>المنتج / الخدمة</th>
+              <th>القسم</th>
+              <th style="text-align:center;">الكمية المتاحة</th>
+              <th style="text-align:left;">السعر</th>
+              <th style="text-align:left;">الخصم</th>
+              <th style="text-align:left;">الصافي للقطعة</th>
+              <th style="width:90px; text-align:center;">كمية الإرجاع</th>
+              <th style="text-align:left; width:100px;">المبلغ المسترد</th>
+            </tr>
+          </thead>
+          <tbody id="returnItemsBody">
+            <tr>
+              <td colspan="9" class="table-empty" style="padding:48px 0; text-align:center;">
+                <div style="margin-bottom:8px; color:#94A3B8;">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:#64748B;">ابحث عن فاتورة من القائمة الجانبية لعرض وتحديد أصنافها</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Action Buttons Bar -->
+      <div class="return-actions-deck" id="returnActions" style="display:none;">
+        <button class="btn btn-danger" onclick="processReturn('full')" style="background:#E4002B; border-color:#E4002B; font-weight:800;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v6h6"/><path d="M3 8C5.3 4.9 8.9 3 13 3c5.5 0 10 4.5 10 10s-4.5 10-10 10c-4.1 0-7.7-1.9-10-5"/></svg>
+          مرتجع فاتورة كاملة
+        </button>
+        <button class="btn btn-warning" onclick="processReturn('partial')" style="background:#F59E0B; border-color:#F59E0B; color:#fff; font-weight:800;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          مرتجع الأصناف المحددة
+        </button>
+        <button class="btn btn-outline" onclick="clearSelection()" style="font-weight:700;">إلغاء التحديد</button>
+      </div>
+
+      <!-- Collapsible Returns History Section -->
+      <div class="history-section">
+        <div class="history-toggle-header" onclick="toggleReturnsHistory()">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>سجل عمليات الإرجاع السابقة</span>
+            <span id="historyCountBadge" style="background:#E2E8F0; color:#334155; padding:1px 6px; border-radius:10px; font-size:10px;">0</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px; font-size:11px; color:#64748B;">
+            <span id="historyToggleLabel">عرض السجل</span>
+            <svg id="historyToggleIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="history-content" id="returnsHistoryContent" style="display:none;">
+          <table style="width:100%; border-collapse:collapse; text-align:right; font-size:12px;">
+            <thead>
+              <tr style="background:#F8FAFC; border-bottom:1px solid var(--border);">
+                <th style="padding:8px 12px; color:#64748B;">#</th>
+                <th style="padding:8px 12px; color:#64748B;">رقم الفاتورة الأصلية</th>
+                <th style="padding:8px 12px; color:#64748B;">تاريخ الإرجاع</th>
+                <th style="padding:8px 12px; color:#64748B;">القيمة المُرتجعة</th>
+                <th style="padding:8px 12px; color:#64748B;">ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="returnsHistoryBody">
+              <tr><td colspan="5" class="table-empty">لا توجد مرتجعات</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+let currentInvoice = null;
+let currentItems = [];
+
+function goBack(){ window.electron.navigate('main-dashboard.html'); }
+
+function showToast(msg, type = 'success'){
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<span>${type === 'success' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : type === 'error' ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v2m0 4h.01M12 3l9 16H3L12 3z"/></svg>'}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function fmt(n){ return Number(n||0).toFixed(2); }
+
+function toggleReturnsHistory() {
+  const content = document.getElementById('returnsHistoryContent');
+  const icon = document.getElementById('historyToggleIcon');
+  const label = document.getElementById('historyToggleLabel');
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.innerHTML = '<polyline points="18 15 12 9 6 15"/>';
+    label.textContent = 'إخفاء السجل';
+  } else {
+    content.style.display = 'none';
+    icon.innerHTML = '<polyline points="6 9 12 15 18 9"/>';
+    label.textContent = 'عرض السجل';
+  }
+}
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+async function searchInvoice() {
+  const q = document.getElementById('searchQuery').value.trim();
+  const container = document.getElementById('searchResults');
+  container.innerHTML = '<div class="table-empty" style="padding:16px 0; font-size:12px; color:#94A3B8;">جارٍ البحث...</div>';
+
+  const isRecent = !q;
+  const sql = isRecent
+    ? `SELECT i.id, i.invoice_number, i.net_total, i.amount_paid, i.invoice_date, i.is_returned, i.treasury_type,
+              c.name as customer_name, c.phone as customer_phone
+       FROM invoices i
+       LEFT JOIN customers c ON i.customer_id = c.id
+       ORDER BY i.id DESC LIMIT 20`
+    : `SELECT i.id, i.invoice_number, i.net_total, i.amount_paid, i.invoice_date, i.is_returned, i.treasury_type,
+              c.name as customer_name, c.phone as customer_phone
+       FROM invoices i
+       LEFT JOIN customers c ON i.customer_id = c.id
+       WHERE (i.invoice_number LIKE ? OR c.name LIKE ? OR c.phone LIKE ? OR i.invoice_date LIKE ?)
+       ORDER BY i.id DESC LIMIT 30`;
+  const params = isRecent ? [] : [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`];
+
+  const res = await window.db.query(sql, params);
+
+  if(!res.success || !res.data || !res.data.length){
+    container.innerHTML = '<div class="table-empty" style="padding:24px 0; font-size:12px;">' + (isRecent ? 'لا توجد فواتير مسجلة في النظام' : 'لم يتم العثور على فواتير مطابقة') + '</div>';
+    return;
+  }
+
+  const data = res.data;
+  if(!isRecent && data.length === 1 && data[0].invoice_number && data[0].invoice_number.toLowerCase() === q.toLowerCase()) {
+    loadInvoice(data[0]);
+  }
+
+  container.innerHTML = data.map(inv => `
+    <div class="search-result-item" onclick="loadInvoice(${JSON.stringify(inv).replace(/"/g,'&quot;')})" style="${inv.is_returned == 1 ? 'opacity:0.65;' : ''}">
+      <div class="inv-num">${inv.invoice_number}${inv.is_returned == 1 ? ' <span style="font-size:10px; color:#EF4444; font-weight:700;">(مُسترجع)</span>' : ''}</div>
+      <div class="inv-meta">${inv.customer_name || 'عميل نقدي'}${inv.customer_phone ? ' (' + inv.customer_phone + ')' : ''} | ${inv.invoice_date || '—'} | <strong>${fmt(inv.net_total)} ج.م</strong></div>
+    </div>
+  `).join('');
+}
+
+
+
+async function loadInvoice(inv) {
+  currentInvoice = inv;
+  // Show compact info bar
+  document.getElementById('invoiceInfoCard').style.display = 'flex';
+  document.getElementById('invNumBadge').textContent = inv.invoice_number;
+  document.getElementById('invCustomer').textContent = inv.customer_name || 'عميل نقدي';
+  document.getElementById('invDate').textContent = inv.invoice_date;
+  document.getElementById('invTotal').textContent = fmt(inv.net_total) + ' جنيه';
+  document.getElementById('invPaid').textContent = fmt(inv.paid_amount || inv.amount_paid) + ' جنيه';
+
+  // Determine original treasury
+  const origTreasury = inv.treasury_type || 'الخزينة';
+  document.getElementById('invTreasury').textContent = origTreasury;
+
+  const sel = document.getElementById('returnTreasury');
+  let found = false;
+  for (let opt of sel.options) {
+    if (opt.value === origTreasury) { opt.selected = true; found = true; break; }
+  }
+  if (!found) {
+    const newOpt = document.createElement('option');
+    newOpt.value = origTreasury;
+    newOpt.textContent = origTreasury;
+    newOpt.selected = true;
+    sel.insertBefore(newOpt, sel.firstChild);
+  }
+
+  const hint = document.getElementById('treasuryAutoHint');
+  hint.textContent = '● تلقائي';
+  setTimeout(() => { hint.textContent = ''; }, 4000);
+
+  // Load items
+  const itemRes = await window.db.query(
+    `SELECT ii.*, 
+            ii.quantity - COALESCE((SELECT SUM(quantity_returned) FROM return_items WHERE invoice_item_id = ii.id), 0) as available_qty
+     FROM invoice_items ii 
+     WHERE ii.invoice_id = ?`, [inv.id]
+  );
+  if(itemRes.success){
+    currentItems = itemRes.data.filter(item => item.available_qty > 0);
+    renderReturnItems();
+    document.getElementById('returnSummary').style.display = 'flex';
+    document.getElementById('returnActions').style.display = 'flex';
+  }
+}
+
+function renderReturnItems() {
+  const tbody = document.getElementById('returnItemsBody');
+  if(!currentItems.length){
+    tbody.innerHTML = '<tr><td colspan="9" class="table-empty" style="padding:24px; text-align:center;">تم استرجاع جميع أصناف هذه الفاتورة بالكامل مسبقاً</td></tr>';
+    return;
+  }
+  tbody.innerHTML = currentItems.map((item, i) => `
+    <tr>
+      <td style="text-align:center;">
+        <input type="checkbox" class="item-chk" data-idx="${i}" onchange="calcReturnTotal()" style="cursor:pointer; width:16px; height:16px; accent-color:#E4002B;" />
+      </td>
+      <td style="font-weight:700; color:#0F172A;">${item.service_name}</td>
+      <td><span class="badge badge-accent">${item.category_name || '—'}</span></td>
+      <td style="text-align:center; font-weight:800; color:#059669;">${item.available_qty}</td>
+      <td style="text-align:left; font-weight:600;">${fmt(item.sell_price)}</td>
+      <td style="text-align:left; color:#EF4444;">${item.item_discount > 0 ? fmt(item.item_discount) : '—'}</td>
+      <td style="text-align:left; font-weight:700;">${fmt(item.sell_price - (item.item_discount || 0))}</td>
+      <td style="text-align:center;">
+        <input type="number" class="qty-input form-control" style="width:70px; height:30px; text-align:center; font-weight:800; padding:0;"
+          data-max="${item.available_qty}" value="1" min="1" max="${item.available_qty}"
+          oninput="calcReturnTotal()" data-idx="${i}" />
+      </td>
+      <td class="item-ret-total" data-idx="${i}" style="font-weight:800; color:#EF4444; text-align:left;">0.00</td>
+    </tr>
+  `).join('');
+  calcReturnTotal();
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.item-chk').forEach(chk => { chk.checked = checked; });
+  calcReturnTotal();
+}
+
+function calcReturnTotal() {
+  let totalItems = 0, totalQty = 0, totalAmount = 0;
+  document.querySelectorAll('.item-chk:checked').forEach(chk => {
+    const idx = parseInt(chk.dataset.idx);
+    const qtyInput = document.querySelector(`.qty-input[data-idx="${idx}"]`);
+    const qty = parseInt(qtyInput?.value) || 1;
+    const item = currentItems[idx];
+    if(!item) return;
+    const unitPrice = item.sell_price - (item.item_discount || 0);
+    const subtotal = unitPrice * qty;
+    const retTotalCell = document.querySelector(`.item-ret-total[data-idx="${idx}"]`);
+    if(retTotalCell) retTotalCell.textContent = fmt(subtotal);
+    totalItems++;
+    totalQty += qty;
+    totalAmount += subtotal;
+  });
+
+  let ratio = 1;
+  if(currentInvoice && currentInvoice.subtotal > 0) {
+    ratio = currentInvoice.net_total / currentInvoice.subtotal;
+  }
+  const finalTotalAmount = totalAmount * ratio;
+
+  document.getElementById('retTotalItems').textContent = totalItems;
+  document.getElementById('retTotalQty').textContent = totalQty;
+  document.getElementById('retTotalAmount').textContent = fmt(finalTotalAmount);
+  window.currentCalculatedReturnAmount = finalTotalAmount;
+}
+
+function clearSelection() {
+  document.querySelectorAll('.item-chk').forEach(chk => chk.checked = false);
+  document.getElementById('selectAllChk').checked = false;
+  calcReturnTotal();
+}
+
+// ─── Process Return ───────────────────────────────────────────────────────────
+async function processReturn(type) {
+  if(!currentInvoice){ showToast('يرجى تحديد فاتورة أولاً', 'error'); return; }
+
+  let ratio = 1;
+  if(currentInvoice && currentInvoice.subtotal > 0) {
+    ratio = currentInvoice.net_total / currentInvoice.subtotal;
+  }
+
+  let returnItems = [];
+  if(type === 'full'){
+    returnItems = currentItems.map(item => ({
+      invoice_item_id: item.id,
+      service_id: item.service_id,
+      product_name: item.service_name,
+      quantity_returned: item.available_qty,
+      price_before_discount: item.sell_price,
+      item_discount: item.item_discount || 0,
+      price_after_discount: item.sell_price - (item.item_discount || 0),
+      total: ((item.sell_price - (item.item_discount || 0)) * item.available_qty) * ratio
+    }));
+  } else {
+    document.querySelectorAll('.item-chk:checked').forEach(chk => {
+      const idx = parseInt(chk.dataset.idx);
+      const qtyInput = document.querySelector(`.qty-input[data-idx="${idx}"]`);
+      const qty = parseInt(qtyInput?.value) || 1;
+      const item = currentItems[idx];
+      if(!item) return;
+      const unitPrice = item.sell_price - (item.item_discount || 0);
+      returnItems.push({
+        invoice_item_id: item.id,
+        service_id: item.service_id,
+        product_name: item.service_name,
+        quantity_returned: qty,
+        price_before_discount: item.sell_price,
+        item_discount: item.item_discount || 0,
+        price_after_discount: unitPrice,
+        total: (unitPrice * qty) * ratio
+      });
+    });
+  }
+
+  if(!returnItems.length){ showToast('لم يتم تحديد أي أصناف للإرجاع', 'warning'); return; }
+
+  let totalReturned = returnItems.reduce((s, i) => s + i.total, 0);
+  if(type !== 'full' && window.currentCalculatedReturnAmount !== undefined) {
+    totalReturned = window.currentCalculatedReturnAmount;
+  }
+  
+  const remainingDebt = currentInvoice.remaining_amount || currentInvoice.remaining || 0;
+  const cashRefund = Math.max(0, totalReturned - remainingDebt);
+  const debtCancelled = Math.min(totalReturned, remainingDebt);
+  
+  const treasuryType = document.getElementById('returnTreasury').value;
+  let msg = `إجمالي قيمة المرتجع: ${fmt(totalReturned)} جنيه.\n`;
+  if (debtCancelled > 0) msg += `- سيتم خصم ${fmt(debtCancelled)} جنيه من المديونية المتبقية للفاتورة.\n`;
+  if (cashRefund > 0) msg += `- سيتم استرجاع مبلغ ${fmt(cashRefund)} جنيه من ${treasuryType}.\n`;
+  msg += `\nهل أنت متأكد من المتابعة؟`;
+
+  const retConfirm = await Swal.fire({
+    title: 'تأكيد عملية المرتجع',
+    text: msg,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#E4002B',
+    cancelButtonColor: '#94A3B8',
+    confirmButtonText: 'نعم، سجّل المرتجع',
+    cancelButtonText: 'إلغاء'
+  });
+  if(!retConfirm.isConfirmed) return;
+
+  const res = await window.db.saveReturn({
+    original_invoice_id: currentInvoice.id,
+    total_returned: totalReturned,
+    treasury_type: treasuryType,
+    notes: document.getElementById('returnNotes').value
+  }, returnItems);
+
+  if(res.success){
+    showToast(`تم تسجيل المرتجع بنجاح — قيمة: ${fmt(totalReturned)} جنيه `, 'success');
+    loadReturnsHistory();
+    currentInvoice = null;
+    currentItems = [];
+    document.getElementById('invoiceInfoCard').style.display = 'none';
+    document.getElementById('returnSummary').style.display = 'none';
+    document.getElementById('returnActions').style.display = 'none';
+    document.getElementById('returnItemsBody').innerHTML =
+      '<tr><td colspan="9" class="table-empty" style="padding:48px 0; text-align:center;">ابحث عن فاتورة لعرض وتحديد أصنافها</td></tr>';
+    document.getElementById('searchQuery').value = '';
+    document.getElementById('returnNotes').value = '';
+  } else {
+    showToast('خطأ: ' + res.error, 'error');
+  }
+}
+
+// ─── Load History ─────────────────────────────────────────────────────────────
+async function loadReturnsHistory() {
+  const res = await window.db.query(
+    `SELECT r.*, i.invoice_number FROM returns r LEFT JOIN invoices i ON r.original_invoice_id=i.id
+     ORDER BY r.id DESC LIMIT 50`, []
+  );
+  const tbody = document.getElementById('returnsHistoryBody');
+  const countBadge = document.getElementById('historyCountBadge');
+  if(!res.success || !res.data.length){
+    tbody.innerHTML = '<tr><td colspan="5" class="table-empty">لا توجد مرتجعات مسجلة</td></tr>';
+    if(countBadge) countBadge.textContent = '0';
+    return;
+  }
+  if(countBadge) countBadge.textContent = res.data.length;
+  tbody.innerHTML = res.data.map((r, i) => `
+    <tr style="border-bottom:1px solid #F1F5F9;">
+      <td style="padding:8px 12px; color:#64748B;">${i+1}</td>
+      <td style="padding:8px 12px; font-weight:700; color:#0F172A;">${r.invoice_number || ('#' + r.original_invoice_id)}</td>
+      <td style="padding:8px 12px; color:#475569;">${r.return_date || '—'}</td>
+      <td style="padding:8px 12px; color:#E4002B; font-weight:800;">${fmt(r.total_returned)} ج.م</td>
+      <td style="padding:8px 12px; color:#64748B;">${r.notes || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ─── Quit Confirmation ────────────────────────────────────────────────────────
+window.electron.onConfirmBackupBeforeQuit(() => {
+  Swal.fire({
+    title: 'إغلاق البرنامج',
+    text: 'هل تريد إنشاء نسخة احتياطية قبل الخروج؟',
+    icon: 'question',
+    showDenyButton: true,
+    showCancelButton: true,
+    confirmButtonText: 'نسخ وخروج',
+    denyButtonText: 'خروج بدون نسخة',
+    cancelButtonText: 'إلغاء'
+  }).then((r) => {
+    if (r.isConfirmed) window.electron.quitWithBackup();
+    else if (r.isDenied) window.electron.quitWithoutBackup();
+    else window.electron.cancelQuit();
+  });
+});
+
+loadReturnsHistory();
+searchInvoice();
+</script>
+</body>
+</html>

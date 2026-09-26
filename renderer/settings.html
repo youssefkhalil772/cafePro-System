@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>CafePro POS — إعدادات النظام والتهيئة</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <style>
+    .set-body {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+      align-content: start;
+    }
+
+    .set-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 100%;
+    }
+
+    .set-section.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .set-section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-preview-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .logo-preview {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--accent);
+      background: var(--accent-light);
+      overflow: hidden;
+    }
+
+    .logo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .toggle-hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 24px;
+      transition: 0.2s ease;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      right: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--success);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      right: calc(100% - 21px);
+    }
+
+    .backup-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .backup-item-info { flex: 1; }
+    .backup-item-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .backup-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .backup-item-missing {
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><img src="../assets/logo.png" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" alt="Logo" onerror="this.src='../assets/icon.png'" /></div>
+      <div>
+        <div class="logo-text">كافيه ومطعم برو</div>
+        <div class="sidebar-status-pill">
+          <span class="sidebar-status-dot"></span>
+          <span>الإعدادات</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-nav-item" onclick="goBack()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        الرئيسية
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">أقسام الإعدادات</div>
+      <div class="sidebar-nav-item active" onclick="showSection('store')">بيانات الكافيه والمطعم</div>
+      <div class="sidebar-nav-item" onclick="showSection('taxes')">الضرائب وخدمة الصالة</div>
+      <div class="sidebar-nav-item" onclick="showSection('printers')">إدارة الطابعات والباركود</div>
+      <div class="sidebar-nav-item" onclick="showSection('cashier')">صلاحيات الكاشير</div>
+      <div class="sidebar-nav-item" onclick="showSection('users')">إدارة المستخدمين</div>
+      <div class="sidebar-nav-item" onclick="showSection('backup')">النسخ الاحتياطي</div>
+      <div class="sidebar-nav-item" onclick="showSection('whatsapp')">واتساب</div>
+      <div class="sidebar-nav-item" onclick="showSection('wa-templates')">قوالب الرسائل</div>
+    </div>
+    <div class="sidebar-footer">
+      <div id="sidebarShopName" style="font-weight:700; color:rgba(255,255,255,0.7);">كافيه ومطعم برو</div>
+      <div style="font-size:10px; color:rgba(255,255,255,0.4);">CafePro System • v2.0</div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="app-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <div>
+          <div class="header-title">إعدادات النظام والتهيئة العامة</div>
+          <div class="header-subtitle">تخصيص بيانات المتجر، الطابعات، الصلاحيات، والنسخ الاحتياطي</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" onclick="goBack()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+          رجوع للرئيسية
+        </button>
+      </div>
+    </header>
+
+    <!-- Section: Store Settings -->
+    <div class="content-area" id="section-store">
+      <div class="set-body">
+
+        <!-- Store Info -->
+        <div class="set-section">
+          <div class="set-section-title">بيانات الكافيه والمطعم</div>
+
+          <div class="logo-preview-area">
+            <div class="logo-preview" id="logoPreview"></div>
+            <div>
+              <button class="btn btn-accent btn-sm" onclick="chooseLogo()">اختر شعار الكافيه</button>
+              <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogoUpload(event)" />
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">يظهر على الفاتورة المطبوعة</div>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">اسم الكافيه والمطعم</label>
+            <input type="text" id="companyName" class="form-control" value="كافيه ومطعم برو" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">العنوان (يظهر على الفاتورة)</label>
+            <input type="text" id="address" class="form-control" placeholder="العنوان بالتفصيل" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">رقم التليفون (يظهر على الفاتورة)</label>
+            <input type="text" id="phone" class="form-control" placeholder="01xxxxxxxxx" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">الرقم الضريبي (اختياري)</label>
+            <input type="text" id="taxNumber" class="form-control" placeholder="الرقم الضريبي" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">العملة</label>
+            <input type="text" id="currency" class="form-control" value="جنيه" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">رقم واتساب الإدارة (لإرسال التقارير اليومية)</label>
+            <input type="text" id="adminWaPhone" class="form-control" placeholder="مثال: 201xxxxxxxxx" />
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">مجلد حفظ التقارير PDF (اختياري)</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="reportSavePath" class="form-control" placeholder="اضغط 'اختيار' لتحديد المجلد" readonly />
+              <button class="btn btn-outline" type="button" onclick="selectReportFolder()" style="white-space:nowrap;">اختيار</button>
+              <button class="btn btn-outline" type="button" onclick="document.getElementById('reportSavePath').value=''" style="white-space:nowrap;">مسح</button>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">إذا تُرك فارغاً سيُطلب منك اختيار مكان الحفظ في كل مرة</div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">⏰ ساعة تقليب اليوم الجديد (بداية اليوم العملي)</label>
+            <select id="dayCutoffHour" class="form-control">
+              <option value="0">12:00 منتصف الليل (00:00 - افتراضي)</option>
+              <option value="1">01:00 صباحاً</option>
+              <option value="2">02:00 صباحاً</option>
+              <option value="3">03:00 صباحاً</option>
+              <option value="4">04:00 صباحاً</option>
+              <option value="5">05:00 صباحاً</option>
+              <option value="6">06:00 صباحاً</option>
+            </select>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">تحديد الساعة التي يعتبر النظام بعدها أن يوماً جديداً قد بدأ (مفيد إذا كان المحل يغلق بعد منتصف الليل).</div>
+          </div>
+        </div>
+
+        <!-- Receipt Settings -->
+        <div class="set-section">
+          <div class="set-section-title">إعدادات الفاتورة</div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">ملاحظات ثابتة على كل فاتورة</label>
+            <textarea id="receiptNotes" class="form-control" rows="3" placeholder="مثال: البضاعة المباعة لا ترد ولا تستبدل بعد 14 يوم"></textarea>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="form-label">تذييل الفاتورة</label>
+            <input type="text" id="receiptFooter" class="form-control" placeholder="مثال: شكراً لزيارتكم" />
+          </div>
+
+          <div style="border-top:2px solid var(--border); padding-top:16px;">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">إظهار تليفون العميل على الفاتورة</div>
+                <div class="toggle-hint">يُطبع رقم تليفون العميل على الفاتورة</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="showCustomerPhone" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="toggle-label">تفعيل نظام الوصفة والمكونات (BOM / Recipe System)</div>
+                <div class="toggle-hint">خصم المواد الخام تلقائياً (بن، سكر، حليب...) عند بيع المشروبات والوجبات وحساب تكلفة الصنف وهامش الربح</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="recipeModeEnabled" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row" style="margin-top:12px;">
+              <div>
+                <div class="toggle-label">تفعيل نظام التوصيل والدليفري (Delivery System)</div>
+                <div class="toggle-hint">تفعيل خيارات الطلبات الخارجية، اختيار الطيارين، حساب عمولة التوصيل، وتتبع حالات التسليم</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="deliveryEnabled" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;text-align:left;">
+            <button class="btn btn-success btn-lg" onclick="saveSettings()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ جميع الإعدادات
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Taxes & Service Charge -->
+    <div class="content-area" id="section-taxes" style="display:none;">
+      <div class="set-body">
+        <div class="set-section">
+          <div class="set-section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            إعدادات الضرائب وخدمة الصالة للكافيه والمطعم
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:18px;">
+            تحديد نسبة ضريبة القيمة المضافة ونسبة خدمة الصالة وطريقة احتسابها في شاشة البيع وفواتير العملاء
+          </div>
+
+          <!-- خدمة الصالة (Service Charge) -->
+          <div style="background:#F8FAFC; border:1px solid var(--border); border-radius:10px; padding:18px; margin-bottom:20px;">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label" style="font-size:15px; font-weight:800; color:var(--primary);">تفعيل خدمة الصالة (Service Charge)</div>
+                <div class="toggle-hint">تطبيق نسبة خدمة إضافية حصراً على طلبات الصالة والترابيزات (Dine-in). لا تُطبق نهائياً على التيك أواي أو الدليفري.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="serviceChargeEnabled" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group" style="margin-top:14px; max-width:300px;">
+              <label class="form-label" style="font-weight:700;">نسبة خدمة الصالة (%)</label>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="number" id="serviceChargeRate" class="form-control" value="12" step="0.5" min="0" max="100" style="font-weight:800; font-size:15px;" />
+                <span style="font-weight:800; color:var(--text-muted); font-size:16px;">%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ضريبة القيمة المضافة (VAT) -->
+          <div style="background:#F8FAFC; border:1px solid var(--border); border-radius:10px; padding:18px; margin-bottom:20px;">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label" style="font-size:15px; font-weight:800; color:var(--primary);">تفعيل ضريبة القيمة المضافة (VAT)</div>
+                <div class="toggle-hint">احتساب الضريبة النظامية على المبيعات وطباعتها بالتفصيل في إيصال العميل</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="taxEnabled" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:14px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-weight:700;">نسبة الضريبة (%)</label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <input type="number" id="taxRate" class="form-control" value="14" step="0.5" min="0" max="100" style="font-weight:800; font-size:15px;" />
+                  <span style="font-weight:800; color:var(--text-muted); font-size:16px;">%</span>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-weight:700;">نظام تسعير الأصناف</label>
+                <select id="taxType" class="form-control" style="font-weight:700; height:44px;">
+                  <option value="inclusive">الأسعار في المنيو شاملة الضريبة (Tax-Inclusive)</option>
+                  <option value="exclusive">الأسعار غير شاملة (تُضاف الضريبة فوق إجمالي الطلب)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="toggle-row" style="margin-top:16px; border-top:1px dashed var(--border); padding-top:14px;">
+              <div>
+                <div class="toggle-label" style="font-weight:700;">إعفاء طلبات التيك أواي من الضريبة (Takeaway Tax-Free)</div>
+                <div class="toggle-hint">عند التفعيل، لا يتم فرض ضريبة على فواتير التيك أواي / السفري بناءً على سياسة الكافيه.</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="taxExemptTakeaway" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;text-align:left;">
+            <button class="btn btn-success btn-lg" onclick="saveSettings()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ إعدادات الضرائب والخدمة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Printers & Barcode Management -->
+    <div class="content-area" id="section-printers" style="display:none;">
+      <div class="set-body">
+        
+        <!-- Printers Assignment Section -->
+        <div class="set-section">
+          <div class="set-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            إدارة الطابعات الموصولة
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
+            حدد الطابعة المخصصة لكل وظيفة للطباعة التلقائية المباشرة دون إظهار مربع حوار النظام في كل مرة.
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">طابعة إيصالات العملاء (Thermal Receipt Printer)</label>
+            <select id="printerReceipt" class="form-control">
+              <option value="">(الافتراضية لنظام التشغيل)</option>
+            </select>
+            <small style="color:var(--text-muted); font-size:11px;">تُستخدم لطباعة فواتير وبونات الحساب للعملاء (80mm / 58mm).</small>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">طابعة المطبخ / البون الداخلي (Kitchen Thermal Printer)</label>
+            <select id="printerKitchen" class="form-control">
+              <option value="">(الافتراضية لنظام التشغيل)</option>
+            </select>
+            <small style="color:var(--text-muted); font-size:11px;">تُستخدم لطباعة بون التجهيز للمطبخ أو الباريستا بدون أسعار وبشكل صامت.</small>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label">طابعة ملصقات الباركود (Barcode Label Printer)</label>
+            <select id="printerBarcode" class="form-control">
+              <option value="">(الافتراضية لنظام التشغيل)</option>
+            </select>
+            <small style="color:var(--text-muted); font-size:11px;">تُستخدم لطباعة ملصقات الباركود للخدمات والمنتجات والألبومات (Zebra, Xprinter, etc.).</small>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="form-label">طابعة التقارير والمستندات (A4 Reports Printer)</label>
+            <select id="printerReports" class="form-control">
+              <option value="">(الافتراضية لنظام التشغيل)</option>
+            </select>
+            <small style="color:var(--text-muted); font-size:11px;">تُستخدم لطباعة التقارير اليومية وكشوف الحسابات بحجم A4 كامل.</small>
+          </div>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="populatePrintersList()">
+              تحديث قائمة الطابعات
+            </button>
+            <button type="button" class="btn btn-success btn-sm" onclick="saveSettings()">
+              حفظ إعدادات الطابعات
+            </button>
+          </div>
+        </div>
+
+        <!-- Barcode Settings & Live Preview Section -->
+        <div class="set-section">
+          <div class="set-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="3" y2="19"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="21" y1="5" x2="21" y2="19"/></svg>
+            إعدادات ملصق الباركود والمعاينة
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label">عرض الملصق (مم)</label>
+              <input type="number" id="barcodeWidth" class="form-control" value="38" min="20" max="100" oninput="updateBarcodePreview()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">ارتفاع الملصق (مم)</label>
+              <input type="number" id="barcodeHeight" class="form-control" value="25" min="15" max="100" oninput="updateBarcodePreview()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">ارتفاع الباركود (مم)</label>
+              <input type="number" id="barcodeBarHeight" class="form-control" placeholder="تلقائي (0)" min="0" max="30" step="0.5" oninput="updateBarcodePreview()" title="اتركه 0 أو فارغاً للضبط التلقائي الذكي حسب مقاس الملصق" />
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+            <div class="form-group">
+              <label class="form-label">اتجاه الطباعة (Orientation)</label>
+              <select id="barcodeOrientation" class="form-control" onchange="updateBarcodePreview()">
+                <option value="portrait">رأسي / قياسي (Portrait - الافتراضي لرولات الباركود)</option>
+                <option value="landscape">أفقي / بالعرض (Landscape)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">طابعة الباركود</label>
+              <select id="printerBarcode" class="form-control">
+                <option value="">(الافتراضية لنظام التشغيل)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border-light); padding-top:10px; margin-bottom:16px;">
+            <div class="toggle-row" style="padding:8px 0;">
+              <div>
+                <div class="toggle-label">إظهار اسم الكافيه والمطعم على الملصق</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="barcodeShowStudio" checked onchange="updateBarcodePreview()" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row" style="padding:8px 0;">
+              <div>
+                <div class="toggle-label">إظهار اسم الخدمة/المنتج على الملصق</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="barcodeShowName" checked onchange="updateBarcodePreview()" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row" style="padding:8px 0;">
+              <div>
+                <div class="toggle-label">إظهار السعر على الملصق</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="barcodeShowPrice" checked onchange="updateBarcodePreview()" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Live Preview Box -->
+          <div style="background:var(--bg); border:1px dashed var(--border); border-radius:var(--radius); padding:16px; text-align:center; margin-bottom:16px;">
+            <div style="font-size:11px; color:var(--text-muted); font-weight:700; margin-bottom:10px;">معاينة حية للملصق (مقاس تقريبي)</div>
+            
+            <div id="barcodeLabelCard" style="background:#fff; color:#000; border:1px solid #ccc; border-radius:4px; padding:8px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.1); width:200px; min-height:130px; transition:all 0.2s ease;">
+              <div id="previewStudioName" style="font-size:11px; font-weight:800; color:#111; margin-bottom:2px; max-width:95%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">كافيه ومطعم برو</div>
+              <div id="previewItemName" style="font-size:10px; color:#333; margin-bottom:2px; max-width:95%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">كابتشينو كافيه وسط</div>
+              <svg id="barcodePreviewSvg" style="max-width:100%; height:auto;"></svg>
+              <div id="previewPrice" style="font-size:11px; font-weight:800; color:#000; margin-top:2px;">السعر: 250 ج.م</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <button type="button" class="btn btn-outline" onclick="testPrintBarcode()">
+              طباعة ملصق تجريبي
+            </button>
+            <button type="button" class="btn btn-success" onclick="saveSettings()">
+              حفظ إعدادات الباركود
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Section: Cashier Permissions -->
+    <div class="content-area" id="section-cashier" style="display:none;">
+      <div style="padding:24px;">
+        <div class="set-section full-width" style="max-width:800px;">
+          <div class="set-section-title">صلاحيات الكاشير</div>
+          <div style="margin-bottom:20px; font-size:13px; color:var(--text-muted);">
+            حدد الصلاحيات التي ترغب في منع الكاشير من الوصول إليها.
+          </div>
+          
+          <div class="set-grid">
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="preventCashierPriceEdit" onchange="saveCashierPermissions()">
+              <label for="preventCashierPriceEdit">
+                منع تعديل السعر
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">لا يمكن للكاشير تعديل سعر الصنف في نقطة البيع</small>
+              </label>
+            </div>
+            
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierHideReports" onchange="saveCashierPermissions()">
+              <label for="cashierHideReports">
+                إخفاء التقارير
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">منع الكاشير من الدخول إلى صفحة التقارير</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierHideHr" onchange="saveCashierPermissions()">
+              <label for="cashierHideHr">
+                إخفاء شئون الموظفين
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">منع الكاشير من رؤية قسم الموارد البشرية</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierPreventReturns" onchange="saveCashierPermissions()">
+              <label for="cashierPreventReturns">
+                منع عمل مرتجع
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">لا يمكن للكاشير الوصول لصفحة المرتجعات</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierHideFinance" onchange="saveCashierPermissions()">
+              <label for="cashierHideFinance">
+                إخفاء الحسابات والخزينة
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">منع الكاشير من رؤية الحسابات والتعامل المالي</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierPreventDiscount" onchange="saveCashierPermissions()">
+              <label for="cashierPreventDiscount">
+                منع عمل خصم
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">لا يمكن للكاشير إضافة خصم على الفاتورة</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2;">
+              <input type="checkbox" id="cashierPreventSettings" onchange="saveCashierPermissions()">
+              <label for="cashierPreventSettings">
+                منع الوصول للإعدادات
+                <small style="display:block;color:var(--text-muted);font-size:11px;margin-top:2px;">لا يمكن للكاشير فتح صفحة الإعدادات</small>
+              </label>
+            </div>
+
+            <div class="checkbox-wrapper" style="grid-column: span 2; background: #fffbeb; border: 1px solid #fde68a; padding: 10px 14px; border-radius: 8px;">
+              <input type="checkbox" id="cashierLockToPos" onchange="saveCashierPermissions()">
+              <label for="cashierLockToPos" style="font-weight: 800; color: #92400e;">
+                🔒 قفل الكاشير على شاشة البيع فقط (Lock Cashier to POS)
+                <small style="display:block;color:#b45309;font-size:11px;margin-top:3px;">توجيه الكاشير بعد تسجيل الدخول مباشرة لشاشة البيع، ومنع وصوله للوحة التحكم الرئيسية مع تحويل زر الرجوع لتسجيل خروج مباشر.</small>
+              </label>
+            </div>
+
+            <div style="grid-column: span 2; margin-top: 10px; padding: 14px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+              <label class="form-label" style="font-weight: 700; font-size: 13px; color: var(--primary);">
+                طريقة التعامل عند نفاد رصيد المخزن في شاشة البيع:
+              </label>
+              <select id="stockOutBehavior" class="form-control" onchange="saveCashierPermissions()" style="margin-top: 6px; font-weight: 600;">
+                <option value="warn">السماح بالبيع مع إظهار تحذير (البيع بالسالب مسموح)</option>
+                <option value="block">منع البيع نهائياً عند عدم توفر كمية كافية بالمخزن</option>
+              </select>
+              <small style="display:block; color:var(--text-muted); font-size:11px; margin-top:5px;">
+                لو اخترت "منع البيع": الكاشير لن يستطيع بيع كمية تتجاوز المتوفر في المخزن، ولو اخترت "سماح مع تحذير": سينبه الكاشير ويسمح بالبيع.
+              </small>
+            </div>
+          </div>
+          
+          <div style="margin-top:24px;text-align:left;">
+            <button class="btn btn-success btn-lg" onclick="saveSettings()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ صلاحيات الكاشير
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: WhatsApp Templates -->
+    <div class="content-area" id="section-wa-templates" style="display:none;">
+      <div style="padding:24px;">
+        <div class="set-section full-width" style="max-width:900px;">
+          <div class="set-section-title">قوالب رسائل الواتساب</div>
+          <div style="margin-bottom:20px; font-size:13px; color:var(--text-muted);">
+            تخصيص الرسائل التي تُرسل للعملاء تلقائياً. استخدم المتغيرات أدناه داخل النص وسيتم استبدالها بالقيم الحقيقية تلقائياً.
+          </div>
+
+          <!-- Variables Reference Panel -->
+          <div style="
+            background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02));
+            border: 1.5px solid rgba(245,158,11,0.25);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+          ">
+            <div style="font-weight:700; font-size:13px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <span></span> دليل المتغيرات — انسخ أي متغير وضعه في القالب
+            </div>
+
+            <!-- Row 1: Common variables -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px; color:var(--text-muted); font-weight:600; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;">متغيرات مشتركة في كل القوالب</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="wa-var-chip" onclick="copyVarChip(this)" title="اسم العميل">{customerName}</span>
+                <span class="wa-var-chip" onclick="copyVarChip(this)" title="رقم الفاتورة">{invoiceNumber}</span>
+                <span class="wa-var-chip" onclick="copyVarChip(this)" title="اسم المحل">{shopName}</span>
+                <span class="wa-var-chip" onclick="copyVarChip(this)" title="عنوان المحل">{address}</span>
+                <span class="wa-var-chip" onclick="copyVarChip(this)" title="رقم هاتف التواصل">{contactPhone}</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Invoice confirm variables -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px; color:#6366f1; font-weight:600; margin-bottom:6px;">تأكيد الفاتورة فقط</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="الإجمالي">{total}</span>
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="المبلغ المدفوع">{paid}</span>
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="المبلغ المتبقي">{remaining}</span>
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="تاريخ الفاتورة">{date}</span>
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="وقت الفاتورة">{time}</span>
+                <span class="wa-var-chip wa-var-chip--purple" onclick="copyVarChip(this)" title="اسم البائع/المسؤول">{sellerName}</span>
+              </div>
+            </div>
+
+            <!-- Row 3: Payment variables -->
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px; color:#22c55e; font-weight:600; margin-bottom:6px;">قوالب الدفع الجزئي والكامل</div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="wa-var-chip wa-var-chip--green" onclick="copyVarChip(this)" title="المبلغ المدفوع الآن في هذه الدفعة">{paidNow}</span>
+                <span class="wa-var-chip wa-var-chip--green" onclick="copyVarChip(this)" title="إجمالي المدفوع حتى الآن">{totalPaid}</span>
+                <span class="wa-var-chip wa-var-chip--green" onclick="copyVarChip(this)" title="المبلغ المتبقي">{remaining}</span>
+                <span class="wa-var-chip wa-var-chip--green" onclick="copyVarChip(this)" title="طريقة الدفع (نقدي/تحويل)">{paymentMethod}</span>
+                <span class="wa-var-chip wa-var-chip--green" onclick="copyVarChip(this)" title="المبلغ المدفوع">{paid}</span>
+              </div>
+            </div>
+
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">اضغط على أي متغير لنسخه — ثم الصقه في مكانه في القالب</div>
+          </div>
+
+          <style>
+            .wa-var-chip {
+              display: inline-block;
+              background: rgba(245,158,11,0.12);
+              color: #d97706;
+              border: 1px solid rgba(245,158,11,0.3);
+              border-radius: 6px;
+              padding: 3px 10px;
+              font-size: 12px;
+              font-family: monospace;
+              cursor: pointer;
+              user-select: none;
+              transition: all 0.15s;
+            }
+            .wa-var-chip:hover { background: rgba(245,158,11,0.25); transform:scale(1.03); }
+            .wa-var-chip:active { transform:scale(0.97); }
+            .wa-var-chip--purple {
+              background: rgba(99,102,241,0.1);
+              color: #6366f1;
+              border-color: rgba(99,102,241,0.3);
+            }
+            .wa-var-chip--purple:hover { background: rgba(99,102,241,0.2); }
+            .wa-var-chip--green {
+              background: rgba(34,197,94,0.1);
+              color: #16a34a;
+              border-color: rgba(34,197,94,0.3);
+            }
+            .wa-var-chip--green:hover { background: rgba(34,197,94,0.2); }
+          </style>
+
+          <div class="set-grid">
+            <div class="set-group" style="grid-column: span 2;">
+              <label>تأكيد الفاتورة (عند التسجيل)</label>
+              <textarea id="tplInvoiceConfirm" rows="5" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:var(--radius);border:1px solid var(--border);"></textarea>
+            </div>
+            
+            <div class="set-group" style="grid-column: span 2;">
+              <label>الطلب جاهز للاستلام</label>
+              <textarea id="tplOrderReady" rows="5" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:var(--radius);border:1px solid var(--border);"></textarea>
+            </div>
+
+            <div class="set-group" style="grid-column: span 2;">
+              <label>تم التسليم بنجاح</label>
+              <textarea id="tplDelivered" rows="5" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:var(--radius);border:1px solid var(--border);"></textarea>
+            </div>
+
+            <div class="set-group" style="grid-column: span 2;">
+              <label>تسديد الدفعة الأخيرة كاملة (مع الاستلام)</label>
+              <textarea id="tplFullPayment" rows="5" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:var(--radius);border:1px solid var(--border);"></textarea>
+            </div>
+
+            <div class="set-group" style="grid-column: span 2;">
+              <label>سداد دفعة جزئية من الحساب</label>
+              <textarea id="tplPartialPayment" rows="5" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:var(--radius);border:1px solid var(--border);"></textarea>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;text-align:left;">
+            <button class="btn btn-success btn-lg" onclick="saveSettings()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ قوالب الرسائل
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: User Management -->
+    <div class="content-area" id="section-users" style="display:none;">
+      <div style="padding:24px;">
+        <div class="set-section full-width" style="max-width:100%;">
+          <div class="set-section-title">
+            إدارة المستخدمين
+            <button class="btn btn-accent btn-sm" style="margin-right:auto;" onclick="openNewUserModal()">+ مستخدم جديد</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الموظف</th>
+                  <th>اسم المستخدم</th>
+                  <th>الدور</th>
+                  <th>آخر تسجيل دخول</th>
+                  <th>الحالة</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="7" class="table-empty">جارٍ التحميل...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: Backup -->
+    <div class="content-area" id="section-backup" style="display:none;">
+      <div style="padding:24px; max-width:700px;">
+        <div class="set-section" style="max-width:100%;">
+          <div class="set-section-title">النسخ الاحتياطي واسترجاع البيانات</div>
+
+          <div style="display:flex;gap:12px;margin-bottom:24px;">
+            <button class="btn btn-success btn-lg" onclick="createBackup()">
+              نسخة احتياطية الآن
+            </button>
+          </div>
+
+          <!-- External Backup Path Card -->
+          <div id="externalBackupCard" style="
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.03));
+            border: 1.5px solid rgba(99,102,241,0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+          ">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:22px;"></span>
+              <div>
+                <div style="font-weight:700; font-size:14px; color:var(--text-primary);">النسخ الاحتياطي التلقائي خارج الـ C</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                  بعد كل نسخة احتياطية، يتم نسخ الملف تلقائياً في المسار الخارجي اللي تختاره (فلاشة — بارتشن D — مجلد أي مكان)
+                </div>
+              </div>
+            </div>
+            <div id="extPathDisplay" style="
+              background: var(--bg);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 10px 14px;
+              font-size: 13px;
+              font-family: monospace;
+              color: var(--text-muted);
+              margin-bottom: 12px;
+              min-height: 38px;
+              display:flex;
+              align-items:center;
+              gap:8px;
+            ">
+              <span id="extPathText" style="flex:1;">جارٍ التحميل...</span>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" id="extBrowseBtn" onclick="selectExternalBackupPath()">
+                اختيار مجلد
+              </button>
+              <button class="btn btn-outline btn-sm" id="extClearBtn" onclick="clearExternalBackupPath()" style="display:none;">
+                ✕ إلغاء المسار
+              </button>
+            </div>
+          </div>
+
+          <div class="set-section-title" style="font-size:14px;border-bottom:1px solid var(--border);">
+            النسخ المتاحة
+          </div>
+          <div id="backupsList">
+            <div class="table-empty">جارٍ التحميل...</div>
+          </div>
+
+          <!-- Factory Reset Area -->
+          <div style="margin-top:40px; padding-top:20px; border-top:2px dashed var(--danger);">
+            <div class="set-section-title" style="color:var(--danger); border:none; margin-bottom:10px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:8px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              منطقة الخطر (مسح البيانات وإعادة الضبط)
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.6;">
+              يمكنك مسح بيانات النظام كلياً أو جزئياً (مثلاً: مسح الفواتير والحركات مع الاحتفاظ بالعملاء والموظفين). لا يمكن التراجع عن هذا الإجراء إلا لو كان لديك نسخة احتياطية.
+            </p>
+            <button class="btn btn-danger" onclick="showSelectiveResetModal()">
+              مسح بيانات النظام ...
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selective Reset Modal -->
+    <div id="selectiveResetModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+      <div style="background:var(--card); width:500px; max-width:90%; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+        <div style="padding:16px 20px; background:var(--danger); color:#fff; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+          <div>مسح بيانات النظام</div>
+          <button onclick="document.getElementById('selectiveResetModal').style.display='none'" style="background:transparent; border:none; color:#fff; font-size:18px; cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:20px;">
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.5;">
+            سيتم مسح جميع الحركات (الفواتير، المرتجعات، السلف، المصروفات، الخزينة، إلخ). يمكنك اختيار ما تريد <strong style="color:var(--success);">الاحتفاظ به</strong> أدناه:
+          </p>
+          
+          <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px; background:var(--bg); padding:16px; border-radius:8px; border:1px solid var(--border);">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="keepCustomers" style="width:16px; height:16px; accent-color:var(--success);" />
+              <span style="font-size:14px; font-weight:600;">الاحتفاظ بـ <span style="color:var(--primary);">العملاء</span></span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="keepServices" style="width:16px; height:16px; accent-color:var(--success);" />
+              <span style="font-size:14px; font-weight:600;">الاحتفاظ بـ <span style="color:var(--primary);">الأصناف والخدمات</span></span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="keepEmployees" style="width:16px; height:16px; accent-color:var(--success);" />
+              <span style="font-size:14px; font-weight:600;">الاحتفاظ بـ <span style="color:var(--primary);">الموظفين</span> (شامل صلاحيات الدخول)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="keepSettings" style="width:16px; height:16px; accent-color:var(--success);" />
+              <span style="font-size:14px; font-weight:600;">الاحتفاظ بـ <span style="color:var(--primary);">الإعدادات العامة وإعدادات الواتساب</span></span>
+            </label>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn btn-outline" onclick="document.getElementById('selectiveResetModal').style.display='none'">إلغاء</button>
+            <button class="btn btn-danger" onclick="executeSelectiveReset()">تأكيد ومسح البيانات</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section: WhatsApp -->
+    <div class="content-area" id="section-whatsapp" style="display:none;">
+      <div style="padding:24px; max-width:750px;">
+
+        <!-- Provider Selector Card -->
+        <div class="set-section" style="max-width:100%; margin-bottom:20px;">
+          <div class="set-section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            إعدادات الواتساب — اختر مزوّد الإرسال
+          </div>
+
+          <!-- حالة الاتصال الموحّدة -->
+          <div id="waStatusCard" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:var(--bg); border-radius:var(--radius); margin-bottom:20px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div id="waStatusDot" style="width:12px;height:12px;border-radius:50%;background:var(--border);flex-shrink:0;transition:background 0.3s;"></div>
+              <div>
+                <div id="waStatusText" style="font-weight:700; font-size:14px;">جاري التحقق...</div>
+                <div id="waStatusHint" style="font-size:11px; color:var(--text-muted);">يرجى الانتظار</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-sm btn-outline" id="waRefreshBtn" onclick="checkWaStatus()">تحديث</button>
+              <button class="btn btn-sm btn-danger" id="waDisconnectBtn" onclick="disconnectWa()" style="display:none;">قطع الاتصال</button>
+            </div>
+          </div>
+
+          <!-- اختيار المزوّد -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">اختر طريقة الإرسال:</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+
+              <label id="providerCard_web_js" style="
+                flex:1; min-width:200px; cursor:pointer;
+                border:2px solid var(--border); border-radius:12px; padding:16px;
+                transition:all 0.2s; background:var(--card);
+              ">
+                <input type="radio" name="waProvider" value="web_js" id="providerWebJs"
+                  onchange="onProviderChange('web_js')" style="display:none;" checked />
+                <div style="font-size:20px; margin-bottom:8px;"></div>
+                <div style="font-weight:700; font-size:13px; margin-bottom:4px;">WhatsApp Web</div>
+                <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+                  مجاني — عبر QR Code<br>
+                  يحتاج هاتف متصل بالإنترنت
+                </div>
+              </label>
+
+              <label id="providerCard_cloud_api" style="
+                flex:1; min-width:200px; cursor:pointer;
+                border:2px solid var(--border); border-radius:12px; padding:16px;
+                transition:all 0.2s; background:var(--card);
+              ">
+                <input type="radio" name="waProvider" value="cloud_api" id="providerCloudApi"
+                  onchange="onProviderChange('cloud_api')" style="display:none;" />
+                <div style="font-size:20px; margin-bottom:8px;">️</div>
+                <div style="font-weight:700; font-size:13px; margin-bottom:4px;">Meta Cloud API</div>
+                <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+                  رسمي ومستقر — بدون خطر حظر<br>
+                  يحتاج حساب Meta for Business
+                </div>
+              </label>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── لوحة WhatsApp Web ───── -->
+        <div id="panel-web_js" class="set-section" style="max-width:100%; margin-bottom:20px;">
+          <div class="set-section-title">WhatsApp Web — ربط عبر QR Code</div>
+
+          <!-- QR Code -->
+          <div id="waQrSection" style="display:none; text-align:center; padding:20px; background:var(--bg); border-radius:var(--radius); margin-bottom:20px;">
+            <div style="font-size:14px; font-weight:700; margin-bottom:12px; color:var(--accent);">امسح الكود لربط واتساب</div>
+            <div style="background:#fff; border-radius:12px; padding:16px; display:inline-block; box-shadow: 0 4px 20px rgba(37,211,102,0.2);">
+              <img id="waQrImage" src="" alt="QR Code" style="width:200px;height:200px;display:block;" />
+            </div>
+            <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+              واتساب ← النقاط الثلاث ← الأجهزة المرتبطة ← ربط جهاز
+            </div>
+            <div id="waQrTimer" style="margin-top:8px; font-size:12px; color:var(--warning);"></div>
+          </div>
+
+          <div style="background:var(--bg); border-radius:var(--radius); padding:16px;">
+            <div style="font-size:13px; font-weight:700; margin-bottom:10px;">كيف يعمل؟</div>
+            <div style="font-size:12px; color:var(--text-muted); line-height:2;">
+              ️ بعد الربط، البرنامج يقدر يبعت واتساب للعملاء تلقائياً عند:<br>
+              • تأكيد الفاتورة الجديدة<br>
+              • تغيير حالة الطلب لـ "جاهز للاستلام"<br>
+              • إرسال تذكير بالمبلغ المتبقي<br><br>
+              الجلسة بتتحفظ تلقائياً — مش هتحتاج تربط مرة تانية
+            </div>
+          </div>
+        </div>
+
+        <!-- ───── لوحة Cloud API ───── -->
+        <div id="panel-cloud_api" class="set-section" style="max-width:100%; margin-bottom:20px; display:none;">
+          <div class="set-section-title">️ Meta Cloud API — بيانات الحساب الرسمي</div>
+
+          <!-- Phone Number ID -->
+          <div class="form-group mb-3">
+            <label class="form-label">Phone Number ID *</label>
+            <input type="text" id="waPhoneNumberId" class="form-control"
+              placeholder="مثال: 123456789012345"
+              style="font-family:monospace; direction:ltr;" />
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              من Meta Business Suite ← WhatsApp ← API Setup
+            </div>
+          </div>
+
+          <!-- Access Token -->
+          <div class="form-group mb-3">
+            <label class="form-label">Access Token *</label>
+            <div style="position:relative;">
+              <input type="password" id="waAccessToken" class="form-control"
+                placeholder="EAAxxxxxxxxxxxxxxx..."
+                style="font-family:monospace; direction:ltr; padding-left:40px;" />
+              <button onclick="toggleTokenVisibility()" style="
+                position:absolute; left:10px; top:50%; transform:translateY(-50%);
+                background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-muted);
+              " id="tokenVisibilityBtn" title="إظهار/إخفاء">️</button>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+              يُحفظ مشفَّراً — لا يظهر مرة أخرى بعد الحفظ
+            </div>
+          </div>
+
+          <!-- Business Account ID -->
+          <div class="form-group mb-3">
+            <label class="form-label">WhatsApp Business Account ID (اختياري)</label>
+            <input type="text" id="waBusinessAccountId" class="form-control"
+              placeholder="مثال: 987654321098765"
+              style="font-family:monospace; direction:ltr;" />
+          </div>
+
+          <!-- API Version -->
+          <div class="form-group mb-4">
+            <label class="form-label">إصدار API</label>
+            <input type="text" id="waApiVersion" class="form-control"
+              placeholder="v20.0" value="v20.0"
+              style="font-family:monospace; direction:ltr; max-width:120px;" />
+          </div>
+
+          <!-- زرار اختبار الاتصال -->
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px; padding:14px; background:var(--bg); border-radius:var(--radius); flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" id="testConnectionBtn" onclick="testCloudConnection()">
+              اختبار الاتصال (بدون إرسال رسالة)
+            </button>
+            <div id="testConnectionResult" style="font-size:13px; flex:1;"></div>
+          </div>
+
+          <!-- زرار التحقق من القوالب -->
+          <div style="margin-bottom:20px; padding:14px; background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(99,102,241,0.02)); border:1.5px solid rgba(99,102,241,0.2); border-radius:var(--radius);">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:13px; color:var(--text-primary); margin-bottom:3px;">
+                  التحقق من القوالب على Meta
+                </div>
+                <div style="font-size:11px; color:var(--text-muted);">
+                  يجلب القوالب الفعلية من حسابك على Meta ويقارنها بما هو مكتوب أدناه — يكتشف أي خطأ في الاسم أو كود اللغة تلقائياً
+                </div>
+              </div>
+              <button class="btn btn-sm" id="verifyTemplatesBtn" onclick="verifyMetaTemplates()"
+                style="background:rgba(99,102,241,0.15); color:#6366f1; border:1px solid rgba(99,102,241,0.35); font-weight:700; white-space:nowrap;">
+                تحقق من القوالب
+              </button>
+            </div>
+            <div id="verifyTemplatesResult" style="margin-top:12px; display:none;"></div>
+          </div>
+
+          <!-- جدول خريطة القوالب -->
+          <div style="border-top:2px solid var(--border); padding-top:20px; margin-top:8px;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+              ربط القوالب المنطقية بأسماء القوالب الفعلية على Meta
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.7;">
+              اكتب في كل خانة اسم القالب الذي سجّلته على حساب Meta الخاص بك.
+              يجب أن يكون الاسم مطابقاً تماماً (حساس لحالة الأحرف).
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;" id="templateMapTable">
+              <!-- يُنشأ ديناميكياً من JS -->
+            </div>
+          </div>
+
+          <!-- ───── كارت استقبال رسائل العملاء (Webhook) ───── -->
+          <div style="border-top:2px solid var(--border); padding-top:20px; margin-top:20px;">
+            <div style="font-weight:800; font-size:15px; margin-bottom:6px; display:flex; align-items:center; gap:8px; color:var(--primary);">
+              استقبال رسائل العملاء والرد عليها (Meta Webhook)
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.7;">
+              يتيح لك هذا القسم استقبال ردود واستفسارات العملاء مباشرة داخل البرنامج على الكمبيوتر والرد عليها بشات فوري دون الحاجة للموبايل أو أي اشتراكات إضافية.
+            </div>
+
+            <!-- بطاقة حالة الـ Webhook والنفق -->
+            <div style="background:#F8FAFC; border:1.5px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span id="settingsWebhookPill" style="padding:4px 12px; border-radius:12px; font-weight:700; font-size:12px; background:#E6F7ED; color:#0E733B;">
+                    النفق السحابي متصل وجاهز
+                  </span>
+                  <span style="font-size:12px; color:var(--text-muted);">نفق Cloudflare آمن ومشفر (مجاني 100%)</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn btn-outline btn-sm" onclick="restartSettingsTunnel()">إعادة تشغيل النفق</button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="sendSettingsTestPing()">تجربة استقبال رسالة</button>
+                </div>
+              </div>
+
+              <!-- Callback URL Field -->
+              <div class="form-group mb-3">
+                <label class="form-label" style="font-weight:700;">Callback URL (رابط الـ Webhook) *</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="settingsWebhookUrl" class="form-control" readonly
+                    style="font-family:monospace; direction:ltr; background:#fff;" placeholder="جاري تجهيز الرابط..." />
+                  <button type="button" class="btn btn-primary btn-sm" onclick="copySettingsWebhookUrl()" style="white-space:nowrap; padding:0 16px;">
+                    نسخ الرابط
+                  </button>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                  انسخ هذا الرابط وضعه في خانة Callback URL داخل Meta Developer Console
+                </div>
+              </div>
+
+              <!-- Verify Token Field -->
+              <div class="form-group mb-3">
+                <label class="form-label" style="font-weight:700;">Verify Token (رمز التحقق) *</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="settingsVerifyToken" class="form-control"
+                    value="photostudio_wa_token" style="font-family:monospace; direction:ltr; background:#fff;" />
+                  <button type="button" class="btn btn-outline btn-sm" onclick="copySettingsVerifyToken()" style="white-space:nowrap; padding:0 16px;">
+                    نسخ الرمز
+                  </button>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+                  رمز سري يربط البرنامج بحساب Meta الخاص بك
+                </div>
+              </div>
+
+              <!-- Webhook Port -->
+              <div class="form-group mb-3" style="max-width:180px;">
+                <label class="form-label">المنفذ المحلي (Local Port)</label>
+                <input type="number" id="settingsWebhookPort" class="form-control" value="3000" style="font-family:monospace; direction:ltr;" />
+              </div>
+
+              <!-- طريقة الربط بـ Meta -->
+              <div style="margin-top:16px; padding:14px; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; font-size:12px; color:#92400E; line-height:1.8;">
+                <div style="font-weight:800; font-size:13px; margin-bottom:6px;">خطوات الربط لمرة واحدة في حساب Meta:</div>
+                1. افتح <a href="#" onclick="window.electron.openExternal('https://developers.facebook.com/apps/')" style="color:#B45309; text-decoration:underline; font-weight:700;">Meta Developer Portal</a> واختر تطبيقك.<br>
+                2. من القائمة الجانبية ادخل على <strong>WhatsApp</strong> ثم <strong>Configuration</strong>.<br>
+                3. في قسم <strong>Webhook</strong> اضغط <strong>Edit</strong>، والصق <strong>Callback URL</strong> و <strong>Verify Token</strong> المنسوخين من الأعلى، ثم اضغط <strong>Verify and save</strong>.<br>
+                4. في قسم <strong>Webhook fields</strong> اضغط <strong>Manage</strong> وضع علامة صح بجانب <strong>messages</strong> (Subscribe).<br>
+                بمجرد إتمام هذه الخطوة، أي رسالة يرسلها الزبون ستصلك فوراً داخل شاشة <strong>محادثات الواتساب</strong> في البرنامج!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- زرار الحفظ الرئيسي -->
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn btn-success btn-lg" id="saveWaSettingsBtn" onclick="saveWaProviderSettings()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            حفظ إعدادات الواتساب
+          </button>
+          <div id="waSaveResult" style="font-size:13px;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- New User Modal -->
+<div class="modal-overlay" id="newUserModal">
+  <div class="modal modal-sm" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">مستخدم جديد</div>
+      <button class="modal-close" onclick="closeModal('newUserModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group mb-3">
+        <label class="form-label">الموظف</label>
+        <select id="newUserEmployee" class="form-control">
+          <option value="">اختر الموظف</option>
+        </select>
+      </div>
+      <div class="form-group mb-3">
+        <label class="form-label">اسم المستخدم *</label>
+        <input type="text" id="newUserUsername" class="form-control" placeholder="اسم المستخدم للدخول" autocomplete="off" />
+      </div>
+      <div class="form-group mb-3">
+        <label class="form-label">كلمة المرور *</label>
+        <input type="password" id="newUserPassword" class="form-control" placeholder="كلمة المرور" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">الدور</label>
+        <select id="newUserRole" class="form-control">
+          <option value="cashier">كاشير</option>
+          <option value="admin">أدمن (مدير)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" onclick="createUser()">حفظ المستخدم</button>
+      <button class="btn btn-outline" onclick="closeModal('newUserModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetPasswordModal">
+  <div class="modal modal-sm" style="max-width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">إعادة تعيين كلمة المرور</div>
+      <button class="modal-close" onclick="closeModal('resetPasswordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+        المستخدم: <strong id="resetUserName">—</strong>
+      </p>
+      <div class="form-group">
+        <label class="form-label">كلمة المرور الجديدة</label>
+        <input type="password" id="newPasswordInput" class="form-control" placeholder="أدخل كلمة المرور الجديدة" />
+      </div>
+      <input type="hidden" id="resetUserId" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-success" onclick="confirmResetPassword()">تأكيد</button>
+      <button class="btn btn-outline" onclick="closeModal('resetPasswordModal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quit confirmation -->
+<div class="modal-overlay" id="quitModal">
+  <div class="modal modal-sm" style="max-width:420px;">
+    <div class="modal-header"><div class="modal-title">إغلاق البرنامج</div></div>
+    <div class="modal-body" style="text-align:center;">
+      <p style="font-size:14px;font-weight:600;">هل تريد إنشاء نسخة احتياطية قبل الخروج؟</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="sendDailyReportAndQuit()" style="width:100%;margin-bottom:8px;">إرسال التقرير وإنهاء</button>
+      <button class="btn btn-success" onclick="window.electron.quitWithBackup()">نسخ وخروج</button>
+      <button class="btn btn-danger" onclick="window.electron.quitWithoutBackup()">خروج بدون نسخة</button>
+      <button class="btn btn-outline" onclick="document.getElementById('quitModal').classList.remove('open'); window.electron.cancelQuit();">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/shared/common.js"></script>
+<script src="vendor/jsbarcode.min.js"></script>
+<script src="js/settings.js"></script>
+</body>
+</html>

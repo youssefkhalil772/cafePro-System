@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafePro System — إدارة المخزون والمواد الخام</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <script src="../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+  <script src="../vendor/jsbarcode.min.js"></script>
+  <style>
+    .inv-tabs { display:flex; gap:6px; border-bottom:2px solid var(--border); padding:0 24px; background:var(--card); margin-bottom:0; overflow-x:auto; }
+    .inv-tab  { padding:14px 20px; font-weight:700; font-size:14px; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; color:var(--text-muted); transition:all 0.2s; white-space:nowrap; display:flex; align-items:center; gap:8px; }
+    .inv-tab.active { color:var(--primary); border-bottom-color:var(--accent); font-weight:800; }
+    .inv-tab:hover  { color:var(--primary); }
+    .tab-pane { display:none; padding:20px 24px; flex:1; overflow-y:auto; }
+    .tab-pane.active { display:block; }
+    
+    .stock-status-ok  { background:rgba(16,185,129,0.15); color:#059669; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .stock-status-low { background:rgba(245,158,11,0.15); color:#d97706; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .stock-status-out { background:rgba(239,68,68,0.15);  color:#dc2626; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    
+    .recipe-builder-layout { display:grid; grid-template-columns:320px 1fr; gap:20px; align-items:start; }
+    @media (max-width:960px) { .recipe-builder-layout { grid-template-columns:1fr; } }
+    
+    .service-picker-item { padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card); cursor:pointer; margin-bottom:8px; transition:all 0.15s; display:flex; justify-content:space-between; align-items:center; }
+    .service-picker-item:hover { border-color:var(--accent); background:rgba(212,160,86,0.06); }
+    .service-picker-item.active { border-color:var(--accent); background:rgba(212,160,86,0.12); font-weight:800; border-right:4px solid var(--accent); }
+    
+    .cost-metric-pill { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 14px; text-align:center; }
+    .cost-metric-val { font-size:18px; font-weight:800; color:var(--primary); }
+    .cost-metric-lbl { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  </style>
+</head>
+<body class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">☕</div>
+      <div>
+        <div class="logo-text">CafePro System</div>
+        <div class="sidebar-status-pill">
+          <span class="sidebar-status-dot"></span>
+          <span>المخزون نشط</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">القوائم الرئيسية</div>
+      <div class="sidebar-nav-item" onclick="navigate('main-dashboard.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        الرئيسية
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('pos-invoice.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>
+        نقطة البيع (POS)
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('tables.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        الصالة والترابيزات
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('suppliers.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        الموردين والمشتريات
+      </div>
+    </div>
+
+    <div class="sidebar-section admin-only">
+      <div class="sidebar-section-title">إدارة العمليات والمخزن</div>
+      <div class="sidebar-nav-item" onclick="navigate('services.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        قائمة الأصناف والمنيو
+      </div>
+      <div class="sidebar-nav-item active" onclick="navigate('inventory.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        المخزون والمواد الخام
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('finance.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        الخزينة والمصروفات
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">التقارير والإعدادات</div>
+      <div class="sidebar-nav-item" onclick="navigate('daily-report.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        التقرير اليومي الشامل
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('reports.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        تقارير المبيعات والأداء
+      </div>
+      <div class="sidebar-nav-item admin-only" onclick="navigate('settings.html')">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        الإعدادات العامة
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div style="font-weight:700; color:rgba(255,255,255,0.8);">CafePro System</div>
+      <div style="font-size:10px; color:rgba(255,255,255,0.4);">إدارة الكافيه والمطعم الحديثة</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="app-header">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div>
+          <div class="header-title">إدارة المخزون والمواد الخام (BOM)</div>
+          <div class="header-subtitle">مراقبة الأرصدة — وصفات الأصناف — حساب التكلفة وهامش الربح — الجرد والهالك</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" onclick="openWasteModal()">🗑 تسجيل هالك (Waste)</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('suppliers.html')">📦 فاتورة توريد مورد</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('main-dashboard.html')">رجوع للرئيسية</button>
+      </div>
+    </header>
+
+    <div class="content-area" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+      <!-- Tabs -->
+      <div class="inv-tabs">
+        <div class="inv-tab active" id="tab-raw" onclick="switchTab('raw')">
+          <span>🌿 المواد الخام والمكونات</span>
+        </div>
+        <div class="inv-tab" id="tab-recipes" onclick="switchTab('recipes')">
+          <span>📋 وصفات الأصناف (BOM) والتكلفة</span>
+        </div>
+        <div class="inv-tab" id="tab-direct" onclick="switchTab('direct')">
+          <span>📦 بضاعة مباشرة وجاهزة</span>
+        </div>
+        <div class="inv-tab" id="tab-stocktake" onclick="switchTab('stocktake')">
+          <span>🔍 الجرد الفعلي للمخزن</span>
+        </div>
+        <div class="inv-tab" id="tab-movements" onclick="switchTab('movements')">
+          <span>📜 سجل الحركات وتتبع الهالك</span>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <!-- ─── TAB 1: RAW MATERIALS (المواد الخام) ────────────────────────────── -->
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <div class="tab-pane active" id="pane-raw">
+        <!-- Quick stats -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div class="stat-card">
+            <div class="stat-icon blue">🌿</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statRawTotalItems">0</div>
+              <div class="stat-label">أنواع المواد الخام</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">💰</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statRawTotalValue">0.00</div>
+              <div class="stat-label">القيمة التقديرية بالمخزن (ج.م)</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon gold">⚠️</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statRawLowStock">0</div>
+              <div class="stat-label">مواد قاربت على النفاد</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">🛑</div>
+            <div class="stat-body">
+              <div class="stat-value" id="statRawOutStock">0</div>
+              <div class="stat-label">مواد نفدت بالكامل (0)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="table-toolbar" style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="rawSearchInput" class="form-control" style="width:280px;" placeholder="بحث باسم المادة الخام..." oninput="filterRawMaterials()" />
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-primary" onclick="openRawModal()">+ إضافة مادة خام جديدة</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>اسم المادة الخام</th>
+                <th>الوحدة الأساسية</th>
+                <th style="text-align:center;">الرصيد المتاح</th>
+                <th style="text-align:center;">حد التنبيه</th>
+                <th style="text-align:right;">تكلفة الوحدة (ج.م)</th>
+                <th style="text-align:right;">إجمالي القيمة</th>
+                <th>المورد الافتراضي</th>
+                <th style="text-align:center;">الحالة</th>
+                <th style="text-align:center; width:170px;">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="rawTableBody">
+              <tr><td colspan="10" class="table-empty">جارٍ تحميل المواد الخام...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <!-- ─── TAB 2: RECIPES & BOM (الوصفات والتكاليف) ────────────────────────── -->
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <div class="tab-pane" id="pane-recipes">
+        <div id="recipeNotice" style="display:none; background:rgba(212,160,86,0.12); border:1px solid var(--accent); padding:12px 18px; border-radius:8px; margin-bottom:16px; font-weight:700;">
+          💡 تنبيه: نظام الوصفات (Recipe/BOM) معطل حالياً من الإعدادات العامة. يمكنك تفعيله من شاشة الإعدادات ليقوم النظام بخصم المكونات تلقائيًا عند البيع.
+        </div>
+
+        <div class="recipe-builder-layout">
+          <!-- Left: Services selector list -->
+          <div class="card" style="margin:0;">
+            <div class="card-header" style="padding:12px 16px;">
+              <div class="card-title" style="font-size:14px;">اختر الصنف لتعديل مكوناته</div>
+            </div>
+            <div class="card-body" style="padding:12px;">
+              <input type="text" id="recipeServiceSearch" class="form-control" placeholder="بحث عن صنف..." oninput="renderRecipeServicesList()" style="margin-bottom:10px;" />
+              <div id="recipeServicesList" style="max-height:480px; overflow-y:auto;">
+                <div class="table-empty">جارٍ التحميل...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Selected Service Recipe details -->
+          <div class="card" style="margin:0;">
+            <div class="card-header" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+              <div>
+                <div class="card-title" id="selectedServiceTitle">اختر صنفاً من القائمة</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;" id="selectedServiceCat">قسم: —</div>
+              </div>
+              <!-- Pricing & Profit Metrics -->
+              <div style="display:flex; gap:10px;" id="recipeMetricsArea">
+                <div class="cost-metric-pill">
+                  <div class="cost-metric-val" id="metricSellPrice">0.00</div>
+                  <div class="cost-metric-lbl">سعر البيع</div>
+                </div>
+                <div class="cost-metric-pill">
+                  <div class="cost-metric-val" style="color:#d97706;" id="metricCostPrice">0.00</div>
+                  <div class="cost-metric-lbl">تكلفة المكونات</div>
+                </div>
+                <div class="cost-metric-pill">
+                  <div class="cost-metric-val" style="color:#059669;" id="metricProfitMargin">0.00</div>
+                  <div class="cost-metric-lbl">هامش الربح (ج.م)</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Add Component Row -->
+              <div id="addComponentArea" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:16px; display:none;">
+                <div style="font-weight:700; margin-bottom:8px; font-size:13px;">+ إضافة مكون للوصفة:</div>
+                <div style="display:grid; grid-template-columns:1fr 140px 100px; gap:10px; align-items:flex-end;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:11px;">المادة الخام</label>
+                    <select id="recipeRawSelect" class="form-control" onchange="onRecipeRawSelectChange()"></select>
+                  </div>
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" style="font-size:11px;">الكمية المستهلكة (<span id="recipeUnitLabel">جرام</span>)</label>
+                    <input type="number" id="recipeRawQty" class="form-control" step="0.01" min="0.001" placeholder="مثلاً: 18" />
+                  </div>
+                  <button class="btn btn-primary" onclick="addRecipeItemRow()">+ إضافة</button>
+                </div>
+              </div>
+
+              <!-- Recipe Items Table -->
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>المادة الخام</th>
+                      <th>الكمية المستهلكة لكل قطعة</th>
+                      <th>الوحدة</th>
+                      <th style="text-align:right;">تكلفة الوحدة</th>
+                      <th style="text-align:right;">التكلفة الإجمالية في الصنف</th>
+                      <th style="text-align:center; width:80px;">حذف</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recipeItemsTableBody">
+                    <tr><td colspan="7" class="table-empty">الرجاء اختيار صنف من القائمة لعرض وتعديل مكوناته</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;" id="saveRecipeArea" style="display:none;">
+                <button class="btn btn-success" onclick="saveCurrentRecipe()" id="saveRecipeBtn" disabled>💾 حفظ الوصفة وتحديث تكلفة الصنف</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <!-- ─── TAB 3: DIRECT TRACKED ITEMS (الأصناف المباشرة) ─────────────────── -->
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <div class="tab-pane" id="pane-direct">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="directSearchInput" class="form-control" style="width:280px;" placeholder="بحث باسم الصنف أو الباركود..." oninput="loadDirectItems()" />
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline" onclick="openPrintBarcodeModal()">🏷 طباعة باركود</button>
+            <button class="btn btn-outline" onclick="navigate('services.html')">⚙️ إدارة المنيو والأصناف</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>اسم الصنف / البضاعة</th>
+                <th>القسم</th>
+                <th>الباركود</th>
+                <th style="text-align:center;">الرصيد بالمخزن</th>
+                <th style="text-align:center;">حد التنبيه</th>
+                <th style="text-align:right;">سعر التكلفة</th>
+                <th style="text-align:right;">سعر البيع</th>
+                <th style="text-align:center;">الحالة</th>
+                <th style="text-align:center; width:130px;">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="directItemsTableBody">
+              <tr><td colspan="10" class="table-empty">جارٍ التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <!-- ─── TAB 4: STOCKTAKE (الجرد الفعلي) ────────────────────────────────── -->
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <div class="tab-pane" id="pane-stocktake">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <!-- Start session card -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">بدء عملية جرد فعلي جديدة</div></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">نوع الجرد المطلوب</label>
+                <select id="stocktakeTypeSelect" class="form-control">
+                  <option value="raw_material">🌿 جرد المواد الخام والمكونات</option>
+                  <option value="service">📦 جرد الأصناف المباشرة والبضاعة الجاهزة</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">ملاحظات أو عنوان الجرد</label>
+                <input type="text" id="stocktakeNotes" class="form-control" placeholder="مثلاً: جرد مواد خام أسبوعي..." />
+              </div>
+              <button class="btn btn-primary w-full" onclick="startStocktake()">▶ بدء عملية الجرد الآن</button>
+            </div>
+          </div>
+          <!-- History sessions list -->
+          <div class="card">
+            <div class="card-header"><div class="card-title">سجل جلسات الجرد السابقة</div></div>
+            <div class="card-body" id="stocktakeSessionsList" style="max-height:280px; overflow-y:auto;">
+              <div class="table-empty">جارٍ التحميل...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active session table -->
+        <div id="activeSessionArea" style="margin-top:20px; display:none;">
+          <div class="card">
+            <div class="card-header" style="justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <div class="card-title" id="activeSessionTitle">جلسة الجرد الحالية</div>
+              <button class="btn btn-success btn-sm" onclick="completeStocktake()">✅ اعتماد الجرد وتحديث الرصيد الفعلي</button>
+            </div>
+            <div class="card-body" style="padding-bottom:0;">
+              <div class="form-group" style="margin-bottom:12px;">
+                <input type="text" id="stocktakeScanInput" class="form-control" style="width:300px;"
+                  placeholder="بحث سريع في عناصر الجرد..." oninput="filterStocktakeItems()" autofocus />
+              </div>
+            </div>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>البند</th>
+                    <th>النوع / الوحدة</th>
+                    <th style="text-align:center;">الرصيد بالبرنامج</th>
+                    <th style="text-align:center;">العدد الفعلي المحصور</th>
+                    <th style="text-align:center;">الفارق (عجز/زيادة)</th>
+                  </tr>
+                </thead>
+                <tbody id="stocktakeItemsBody">
+                  <tr><td colspan="5" class="table-empty">لا توجد عناصر</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <!-- ─── TAB 5: MOVEMENTS & WASTE (سجل الحركات والهالك) ─────────────────── -->
+      <!-- ═══════════════════════════════════════════════════════════════════════ -->
+      <div class="tab-pane" id="pane-movements">
+        <div class="table-toolbar" style="margin-bottom:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <select id="movFilterType" class="form-control" style="width:160px;" onchange="loadMovements()">
+            <option value="">كل أنواع الحركات</option>
+            <option value="sale">مبيعات (خصم)</option>
+            <option value="restock">توريد مشتريات (+)</option>
+            <option value="waste">هالك وإتلاف (Waste)</option>
+            <option value="stocktake_adjustment">تسوية جرد</option>
+            <option value="manual_edit">تعديل يدوي</option>
+          </select>
+          <input type="date" id="movFrom" class="form-control" style="width:150px;" onchange="loadMovements()" />
+          <input type="date" id="movTo" class="form-control" style="width:150px;" onchange="loadMovements()" />
+          <button class="btn btn-secondary btn-sm" onclick="loadMovements()">بحث وتحديث</button>
+          <button class="btn btn-danger btn-sm" style="margin-right:auto;" onclick="openWasteModal()">🗑 تسجيل هالك يدوي</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>التاريخ والوقت</th>
+                <th>البند</th>
+                <th>النوع</th>
+                <th style="text-align:center;">نوع الحركة</th>
+                <th style="text-align:center;">التغيير</th>
+                <th style="text-align:center;">الرصيد بعد</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="movementsTableBody">
+              <tr><td colspan="7" class="table-empty">اختر التصفية واضغط بحث</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ─── MODAL: Add/Edit Raw Material ───────────────────────────────────── -->
+  <div class="modal-overlay" id="rawMaterialModal">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <div class="modal-title" id="rawModalTitle">إضافة مادة خام جديدة</div>
+        <button class="modal-close" onclick="closeModal('rawMaterialModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rawId" />
+        <div class="form-group">
+          <label class="form-label">اسم المادة الخام <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="rawName" class="form-control" placeholder="مثلاً: بن برازيلي، حليب كامل الدسم، أكواب 8oz..." />
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="form-group">
+            <label class="form-label">وحدة القياس الأساسية</label>
+            <select id="rawUnit" class="form-control">
+              <option value="جرام">جرام (g)</option>
+              <option value="مل">مل (ml)</option>
+              <option value="قطعة">قطعة / حبة</option>
+              <option value="كجم">كيلوجرام (kg)</option>
+              <option value="لتر">لتر (L)</option>
+              <option value="علبة">علبة</option>
+            </select>
+          </div>
+          <div class="form-group" id="rawQtyGroup">
+            <label class="form-label">الرصيد الافتتاحي</label>
+            <input type="number" id="rawQty" class="form-control" step="0.01" min="0" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">حد التنبيه للنقص</label>
+            <input type="number" id="rawLowThreshold" class="form-control" step="0.01" min="0" value="100" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">تكلفة الوحدة الواحدة (ج.م)</label>
+            <input type="number" id="rawCost" class="form-control" step="0.0001" min="0" value="0" placeholder="مثلاً: 0.85" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">المورد الافتراضي (اختياري)</label>
+          <select id="rawSupplierSelect" class="form-control">
+            <option value="">بدون مورد محدد</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('rawMaterialModal')">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveRawMaterial()">حفظ المادة الخام</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: Adjust Raw Material Stock ───────────────────────────────── -->
+  <div class="modal-overlay" id="rawAdjustModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div class="modal-title" id="rawAdjustTitle">تعديل رصيد مادة خام</div>
+        <button class="modal-close" onclick="closeModal('rawAdjustModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="adjustRawId" />
+        <div class="form-group">
+          <label class="form-label">نوع العملية</label>
+          <select id="adjustType" class="form-control">
+            <option value="restock">+ إضافة رصيد / توريد يدوي</option>
+            <option value="waste">🗑 تسجيل هالك / تالف (خصم)</option>
+            <option value="manual_edit">تسوية عجز أو زيادة يدوية</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الكمية (<span id="adjustUnitSpan">الوحدة</span>)</label>
+          <input type="number" id="adjustQty" class="form-control" step="0.01" placeholder="أدخل الكمية الموجبة أو السالبة" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">سبب التعديل / ملاحظات</label>
+          <input type="text" id="adjustNotes" class="form-control" placeholder="مثلاً: سكب قهوة، كسر كوب، تسوية..." />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('rawAdjustModal')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitRawStockAdjust()">تأكيد التعديل</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: Quick Waste Registration (هالك عام) ──────────────────────── -->
+  <div class="modal-overlay" id="wasteModal">
+    <div class="modal modal-sm">
+      <div class="modal-header" style="background:#fee2e2; border-bottom:1px solid #fca5a5;">
+        <div class="modal-title" style="color:#b91c1c;">🗑 تسجيل هالك أو تالف (Waste)</div>
+        <button class="modal-close" onclick="closeModal('wasteModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">نوع البند التالف</label>
+          <select id="wasteItemType" class="form-control" onchange="populateWasteItemSelect()">
+            <option value="raw_material">🌿 مادة خام (بن، حليب، أكواب...)</option>
+            <option value="service">📦 صنف بضاعة مباشر</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">اختر البند التالف</label>
+          <select id="wasteItemSelect" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الكمية التالفة / الهالك</label>
+          <input type="number" id="wasteQty" class="form-control" step="0.01" min="0.01" placeholder="أدخل الكمية التالفة" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">سبب الهالك</label>
+          <input type="text" id="wasteReason" class="form-control" placeholder="مثلاً: تلف في الماكينة، كسر، انتهاء صلاحية..." />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('wasteModal')">إلغاء</button>
+        <button class="btn btn-danger" onclick="submitQuickWaste()">تسجيل الهالك وخصم الرصيد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: Barcode Print Modal ────────────────────────────────────── -->
+  <div class="modal-overlay" id="printBarcodeModal">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <div class="modal-title">طباعة باركود الأصناف</div>
+        <button class="modal-close" onclick="closeModal('printBarcodeModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px;">
+          <input type="text" id="barcodeSearchInput" class="form-control" placeholder="اسم الصنف أو الباركود..." oninput="searchBarcodeItems()" />
+        </div>
+        <div id="barcodeItemsList" style="max-height:260px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; margin-bottom:12px;"></div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="number" id="barcodeCopiesInput" class="form-control" value="1" min="1" max="100" style="width:70px; text-align:center;" />
+          <button class="btn btn-primary" onclick="doPrintBarcodeLabels()" style="flex:1;">طباعة ملصقات الباركود</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MODAL: Stocktake Session Report ───────────────────────────────── -->
+  <div class="modal-overlay" id="stocktakeReportModal" onclick="if(event.target===this) closeModal('stocktakeReportModal')">
+    <div class="modal" style="max-width:820px; width:94%; border-radius:14px; overflow:hidden;">
+      <div class="modal-header" style="background:var(--primary); color:#fff; padding:18px 24px;">
+        <div>
+          <div class="modal-title" id="reportModalTitle" style="color:#fff; font-size:18px; font-weight:800;">تقرير جلسة الجرد</div>
+          <div id="reportModalSub" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:3px;">تفاصيل الكميات المحصورة والفروقات</div>
+        </div>
+        <button class="modal-close" style="color:#fff;" onclick="closeModal('stocktakeReportModal')">✕</button>
+      </div>
+      <div class="modal-body" id="reportModalBody" style="padding:22px; max-height:calc(85vh - 140px); overflow-y:auto;"></div>
+      <div class="modal-footer" style="padding:14px 24px; display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-outline" onclick="closeModal('stocktakeReportModal')">✕ إغلاق</button>
+        <button class="btn btn-primary" onclick="window.print()">طباعة التقرير</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../vendor/jsbarcode.min.js"></script>
+  <script src="js/inventory.js"></script>
+</body>
+</html>

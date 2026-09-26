@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CafePro — خريطة الصالة والترابيزات</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <script src="../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+  <style>
+    .tables-toolbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    .status-pill-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .status-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .status-chip.all { background: var(--bg-secondary); color: var(--text); border-color: var(--border); }
+    .status-chip.empty { background: rgba(16,185,129,0.12); color: #059669; border-color: rgba(16,185,129,0.3); }
+    .status-chip.busy { background: rgba(239,68,68,0.12); color: #DC2626; border-color: rgba(239,68,68,0.3); }
+    .status-chip.reserved { background: rgba(245,158,11,0.12); color: #D97706; border-color: rgba(245,158,11,0.3); }
+    .status-chip.active { box-shadow: 0 2px 6px rgba(0,0,0,0.15); transform: translateY(-1px); border-width: 2px; }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .table-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 190px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .table-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    .table-card.status-empty {
+      border-color: rgba(16,185,129,0.35);
+      background: linear-gradient(180deg, #FFFFFF 0%, rgba(16,185,129,0.03) 100%);
+    }
+    .table-card.status-empty:hover {
+      border-color: var(--success);
+    }
+
+    .table-card.status-busy {
+      border-color: rgba(239,68,68,0.4);
+      background: linear-gradient(180deg, #FFFFFF 0%, rgba(239,68,68,0.04) 100%);
+    }
+    .table-card.status-busy:hover {
+      border-color: var(--danger);
+    }
+
+    .table-card.status-reserved {
+      border-color: rgba(245,158,11,0.4);
+      background: linear-gradient(180deg, #FFFFFF 0%, rgba(245,158,11,0.04) 100%);
+    }
+    .table-card.status-reserved:hover {
+      border-color: var(--warning);
+    }
+
+    .table-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .table-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .table-section-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-top: 2px;
+      display: inline-block;
+    }
+    .table-status-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+    .table-status-badge.empty { background: rgba(16,185,129,0.15); color: #059669; }
+    .table-status-badge.busy { background: rgba(239,68,68,0.15); color: #DC2626; }
+    .table-status-badge.reserved { background: rgba(245,158,11,0.15); color: #D97706; }
+
+    .table-card-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 8px 0;
+    }
+    .order-info-box {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .order-total-price {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .table-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+    }
+    .seats-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+      <div>
+        <div class="logo-text" id="sidebarShopName">كافيه برو</div>
+        <div class="sidebar-status-pill">
+          <span class="sidebar-status-dot"></span>
+          <span>خريطة الصالة</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">القوائم الأساسية</div>
+      <div class="sidebar-nav-item" onclick="navigate('main-dashboard.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        الرئيسية
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('pos-invoice.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>
+        كاشير ونقطة البيع (POS)
+      </div>
+      <div class="sidebar-nav-item active" onclick="navigate('tables.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><line x1="6" y1="16" x2="6" y2="20"/><line x1="18" y1="16" x2="18" y2="20"/><line x1="4" y1="20" x2="8" y2="20"/><line x1="16" y1="20" x2="20" y2="20"/></svg>
+        الصالة والترابيزات
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('returns.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        مرتجع طلب
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('customers.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        العملاء
+      </div>
+    </div>
+
+    <div class="sidebar-section admin-only">
+      <div class="sidebar-section-title">المخازن والمشتريات</div>
+      <div class="sidebar-nav-item" onclick="navigate('services.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        الأصناف والمنيو
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('inventory.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        المخزون والوصفات
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('suppliers.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        الموردين وفواتير التوريد
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('finance.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        الخزينة والمصروفات
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('hr.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        شئون الموظفين والطيارين
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">التقارير والإعدادات</div>
+      <div class="sidebar-nav-item" onclick="navigate('daily-report.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        التقرير اليومي الشامل
+      </div>
+      <div class="sidebar-nav-item" onclick="navigate('reports.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        سجل الفواتير والتقارير
+      </div>
+      <div class="sidebar-nav-item admin-only" onclick="navigate('settings.html')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        الإعدادات
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div style="font-weight:700; color:rgba(255,255,255,0.7); font-size:12px;">CafePro System 2026</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content" style="display:flex; flex-direction:column; overflow:hidden;">
+    <header class="app-header">
+      <div>
+        <div class="header-title">خريطة الصالة والترابيزات</div>
+        <div class="header-subtitle">متابعة الترابيزات المفتوحة والمشغولة وبدء الطلبات وتحويلها</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary btn-sm" onclick="openTransferModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          تحويل ترابيزة
+        </button>
+        <button class="btn btn-warning btn-sm" onclick="openMergeModal()" style="font-weight:700; color:#fff;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:4px;"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+          دمج ترابيزتين
+        </button>
+        <button class="btn btn-accent btn-sm admin-only" onclick="openTableModal()">+ إضافة ترابيزة</button>
+        <button class="btn btn-outline btn-sm" onclick="loadTables()">تحديث</button>
+      </div>
+    </header>
+
+    <!-- Toolbar & Filters -->
+    <div class="tables-toolbar">
+      <div class="status-pill-group">
+        <div class="status-chip all active" onclick="filterStatus('all', this)">
+          <span>الكل</span>
+          <span class="badge" id="countAll">0</span>
+        </div>
+        <div class="status-chip empty" onclick="filterStatus('فاضية', this)">
+          <span>🟢 فاضية</span>
+          <span class="badge" id="countEmpty">0</span>
+        </div>
+        <div class="status-chip busy" onclick="filterStatus('مشغولة', this)">
+          <span>🔴 مشغولة</span>
+          <span class="badge" id="countBusy">0</span>
+        </div>
+        <div class="status-chip reserved" onclick="filterStatus('محجوزة', this)">
+          <span>🟡 محجوزة</span>
+          <span class="badge" id="countReserved">0</span>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center;">
+        <select id="sectionFilter" class="form-control" style="width:160px; height:34px; font-size:12px;" onchange="renderTables()">
+          <option value="">جميع الصالات / الأقسام</option>
+        </select>
+        <input type="text" id="searchTable" class="form-control" style="width:180px; height:34px; font-size:12px;" placeholder="بحث برقم الترابيزة..." oninput="renderTables()" />
+      </div>
+    </div>
+
+    <!-- Tables Grid -->
+    <div class="tables-grid" id="tablesGrid">
+      <div style="grid-column: 1 / -1; text-align:center; padding:50px; color:var(--text-muted);">
+        جاري تحميل الترابيزات...
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Table -->
+  <div class="modal-overlay" id="tableModal">
+    <div class="modal modal-sm" style="max-width:440px;">
+      <div class="modal-header">
+        <div class="modal-title" id="tableModalTitle">إضافة ترابيزة جديدة</div>
+        <button class="modal-close" onclick="closeModal('tableModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTableId" />
+        <div class="form-group mb-3">
+          <label class="form-label">اسم / رقم الترابيزة *</label>
+          <input type="text" id="tableNameInput" class="form-control" placeholder="مثال: ترابيزة 1 أو T-12" required />
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">القسم / الصالة (اختياري)</label>
+          <input type="text" id="tableSectionInput" class="form-control" placeholder="مثال: صالة داخلية، شرفة، عائلات، روف" list="sectionsDatalist" />
+          <datalist id="sectionsDatalist">
+            <option value="صالة داخلية"></option>
+            <option value="شرفة خارجي"></option>
+            <option value="صالة عائلات"></option>
+            <option value="روف / حديقة"></option>
+            <option value="بار / تيك أواي"></option>
+          </datalist>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">عدد المقاعد</label>
+          <input type="number" id="tableSeatsInput" class="form-control" value="4" min="1" max="50" />
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between;">
+        <button class="btn btn-danger btn-sm admin-only" id="deleteTableBtn" onclick="deleteCurrentTable()" style="display:none;">حذف الترابيزة</button>
+        <div style="display:flex; gap:8px; margin-right:auto;">
+          <button class="btn btn-outline" onclick="closeModal('tableModal')">إلغاء</button>
+          <button class="btn btn-success" onclick="saveTable()">حفظ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Transfer Order -->
+  <div class="modal-overlay" id="transferModal">
+    <div class="modal modal-sm" style="max-width:440px;">
+      <div class="modal-header">
+        <div class="modal-title">تحويل طلب من ترابيزة لأخرى</div>
+        <button class="modal-close" onclick="closeModal('transferModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-3">
+          <label class="form-label">من الترابيزة المشغولة (المصدر) *</label>
+          <select id="transferFromSelect" class="form-control"></select>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label">إلى الترابيزة الجديدة (الوجهة) *</label>
+          <select id="transferToSelect" class="form-control"></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('transferModal')">إلغاء</button>
+        <button class="btn btn-primary" onclick="confirmTransfer()">تأكيد التحويل</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Merge Two Tables -->
+  <div class="modal-overlay" id="mergeTablesModal">
+    <div class="modal modal-sm" style="max-width:460px;">
+      <div class="modal-header" style="background:#78350f; color:#fff;">
+        <div class="modal-title" style="color:#fff;">🔀 دمج ترابيزتين في فاتورة واحدة</div>
+        <button class="modal-close" style="color:#fff;" onclick="closeModal('mergeTablesModal')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:12px; color:var(--text-muted); background:var(--bg-secondary); padding:10px 14px; border-radius:8px; line-height:1.5;">
+          سيتم نقل جميع أصناف الترابيزة الأولى (المصدر) إلى فاتورة الترابيزة الثانية (المستمرة)، وتصبح الترابيزة الأولى فاضية ومتاحة.
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">الترابيزة الأولى (سيتم إخلاؤها وضم طلبها) *</label>
+          <select id="mergeFromSelect" class="form-control" style="height:42px; font-weight:700;"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">الترابيزة الثانية (الرئيسية المستمرة) *</label>
+          <select id="mergeToSelect" class="form-control" style="height:42px; font-weight:700;"></select>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:14px 20px;">
+        <button class="btn btn-outline" onclick="closeModal('mergeTablesModal')">إلغاء</button>
+        <button class="btn btn-warning" onclick="confirmMergeTables()" style="font-weight:800; color:#fff;">تأكيد دمج الطلبين 🔀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reserve Table -->
+  <div class="modal-overlay" id="reserveTableModal">
+    <div class="modal modal-sm" style="max-width:440px;">
+      <div class="modal-header" style="background:var(--primary); color:#fff;">
+        <div class="modal-title" style="color:#fff;" id="reserveModalTitle">حجز ترابيزة</div>
+        <button class="modal-close" style="color:#fff;" onclick="closeModal('reserveTableModal')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        <input type="hidden" id="reserveTableId" />
+        <input type="hidden" id="reserveTableName" />
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">اسم العميل *</label>
+          <input type="text" id="reserveCustomerName" class="form-control" list="tableReservationCustomersList" placeholder="اسم العميل أو اختر من العملاء..." style="height:42px; font-weight:600;" oninput="onReservationCustomerNameInput(this.value, 'tables')" required />
+          <datalist id="tableReservationCustomersList"></datalist>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">رقم الهاتف / الواتساب *</label>
+          <input type="tel" id="reserveCustomerPhone" class="form-control" list="tableReservationPhonesList" placeholder="مثال: 01012345678" style="height:42px; font-weight:600;" oninput="onReservationCustomerPhoneInput(this.value, 'tables')" required />
+          <datalist id="tableReservationPhonesList"></datalist>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">موعد الحجز</label>
+          <input type="datetime-local" id="reserveTime" class="form-control" style="height:42px; font-size:13px; font-weight:600;" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">عدد الأفراد</label>
+          <input type="number" id="reservePartySize" class="form-control" value="2" min="1" max="50" style="height:42px; font-weight:700;" />
+        </div>
+
+        <div style="font-size:11px; color:var(--text-muted); background:var(--bg-secondary); padding:8px 12px; border-radius:6px; line-height:1.4;">
+          💬 سيتم إرسال رسالة تأكيد الحجز تلقائياً عبر الواتساب لرقم العميل فور التأكيد.
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:14px 20px;">
+        <button class="btn btn-outline" onclick="closeModal('reserveTableModal')">إلغاء</button>
+        <button class="btn btn-warning" onclick="confirmReserveTable()" style="font-weight:800;">تأكيد الحجز والإرسال 💬</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/shared/common.js"></script>
+  <script src="js/tables.js"></script>
+</body>
+</html>

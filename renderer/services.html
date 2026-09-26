@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام كافيه برو — قائمة الأصناف والمنتجات والأسعار</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <script src="../node_modules/sweetalert2/dist/sweetalert2.all.min.js"></script>
+  <style>
+    .srv-layout { display: flex; height: 100vh; flex-direction: column; }
+    .srv-body { flex: 1; display: flex; overflow: hidden; }
+    
+    /* Category Sidebar */
+    .cat-sidebar {
+      width: 240px;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .cat-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .cat-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    .cat-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all var(--transition);
+      border: 1px solid transparent;
+    }
+    .cat-item:hover { background: var(--bg); border-color: var(--border); }
+    .cat-item.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+    .cat-item-name { font-size: 13px; font-weight: 600; }
+    .cat-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity var(--transition); }
+    .cat-item:hover .cat-item-actions { opacity: 1; }
+    
+    /* Main Content */
+    .srv-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .barcode-display {
+      font-family: monospace;
+      background: rgba(0,0,0,0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+<div class="srv-layout">
+
+  <!-- Header -->
+  <header class="app-header" style="flex-shrink:0;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      
+      <div>
+        <div class="header-title">إدارة قائمة الأصناف والمنتجات والأسعار (Menu)</div>
+        <div class="header-subtitle">إدارة أقسام المنيو، تصنيفات المشروبات والمأكولات، قوائم الأسعار والباركود</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" onclick="goBack()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        رجوع للرئيسية
+      </button>
+    </div>
+  </header>
+
+  <div class="srv-body">
+    
+    <!-- Category Sidebar -->
+    <div class="cat-sidebar">
+      <div class="cat-header">
+        <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:12px;">أقسام المنيو الرئيسية</div>
+        <div class="flex gap-2">
+          <input type="text" id="newCatName" class="form-control" placeholder="اسم القسم الجديد" style="height:32px;font-size:12px;" />
+          <button class="btn btn-accent btn-sm" onclick="addCategory()" style="padding:0 12px;white-space:nowrap;">إضافة</button>
+        </div>
+      </div>
+      <div class="cat-list" id="categoryList">
+        <!-- Categories rendered here -->
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="srv-main">
+      
+      <!-- Quick Stats -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:16px;margin-bottom:20px;">
+        <div class="stat-card">
+          <div class="stat-icon blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+          <div class="stat-body">
+            <div class="stat-value" id="statTotalServices">0</div>
+            <div class="stat-label">إجمالي الأصناف</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="stat-body">
+            <div class="stat-value" id="statTotalCategories">0</div>
+            <div class="stat-label">عدد الأقسام</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--primary);" id="currentCategoryTitle">جميع الأصناف والمنتجات</div>
+          <div style="font-size:12px;color:var(--text-muted);" id="servicesCount">0 صنف</div>
+        </div>
+        <div class="flex gap-3 items-center">
+          <div class="search-bar" style="width:240px;">
+            <input type="text" id="serviceSearch" placeholder="بحث باسم الصنف أو الباركود..." oninput="renderServicesTable()" />
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <button class="btn btn-success" onclick="openServiceModal()">+ إضافة صنف جديد</button>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+        <div class="table-wrapper" style="flex:1;border:none;border-radius:0;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>اسم الصنف / المنتج</th>
+                <th>النوع</th>
+                <th>القسم</th>
+                <th>الباركود</th>
+                <th>سعر التكلفة</th>
+                <th>سعر البيع</th>
+                <th style="width:120px;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="servicesBody">
+              <tr><td colspan="8" class="table-empty">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Service Modal -->
+<div class="modal-overlay" id="serviceModal">
+  <div class="modal" style="max-width: 660px; width: 92%; max-height: 90vh; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+    <div class="modal-header" style="flex-shrink: 0; background: var(--primary); color: #fff; padding: 16px 22px; display:flex; justify-content:space-between; align-items:center;">
+      <div class="modal-title" id="serviceModalTitle" style="color: #fff; font-size: 17px; font-weight: 800;">
+        إضافة صنف جديد للمنيو
+      </div>
+      <button type="button" class="modal-close" style="background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); color: #fff; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; cursor: pointer; line-height: 1;" onclick="closeModal('serviceModal')">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding: 24px; display:flex; flex-direction:column; gap: 18px; overflow-y: auto; flex: 1;">
+      <input type="hidden" id="srvId" />
+
+      <!-- Row 1: نوع الصنف والقسم -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">نوع الصنف</label>
+          <select id="srvTrackInv" class="form-control" onchange="toggleInvFields()" style="height:44px; font-size:13px; font-weight:600;">
+            <option value="0">☕ صنف تحضير (مشروبات / وجبات بالوصفة)</option>
+            <option value="1">📦 بضاعة جاهزة (كانز / معلبات برصيد مخزن)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">القسم</label>
+          <select id="srvCat" class="form-control" style="height:44px; font-size:14px;">
+            <option value="">اختر القسم</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: صورة الصنف والاسم -->
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <!-- Image Preview & Upload Box -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:0;">صورة الصنف</label>
+          <div id="srvImagePreviewWrap" onclick="document.getElementById('srvImageFile').click()" style="width:72px; height:72px; border:2px dashed var(--border); border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; background:var(--bg-secondary); position:relative;" title="انقر لاختيار صورة">
+            <img id="srvImagePreview" src="" style="width:100%; height:100%; object-fit:cover; display:none;" />
+            <div id="srvImagePlaceholder" style="font-size:24px; color:var(--text-muted);">📷</div>
+          </div>
+          <input type="file" id="srvImageFile" accept="image/*" style="display:none;" onchange="handleServiceImageUpload(event)" />
+          <input type="hidden" id="srvImage" />
+          <button type="button" id="srvImageRemoveBtn" class="btn btn-sm btn-outline" style="display:none; font-size:10px; padding:2px 8px; color:var(--danger);" onclick="removeServiceImage()">حذف الصورة</button>
+        </div>
+
+        <!-- Name Input -->
+        <div class="form-group" style="flex:1; margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">اسم الصنف *</label>
+          <input type="text" id="srvName" class="form-control" placeholder="مثال: كابتشينو، برجر لحم، كوكاكولا..." style="height:44px; font-size:15px; font-weight:600;" />
+        </div>
+      </div>
+
+      <!-- Row 3: الباركود -->
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" style="font-weight:700; font-size:13px; margin-bottom:6px; display:block;">الباركود</label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="text" id="srvBarcode" class="form-control" placeholder="امسح الباركود أو اتركه للتوليد" style="height:44px; font-size:14px; font-family:monospace; flex:1;" />
+          <button type="button" class="btn btn-outline" onclick="generateBarcode()" style="height:44px; padding:0 18px; font-weight:700; white-space:nowrap;">توليد كود</button>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); cursor:pointer; margin-top:6px;">
+          <input type="checkbox" id="autoGenerateBarcode" style="width:15px; height:15px;" />
+          <span>توليد باركود تلقائياً عند الإضافة</span>
+        </label>
+      </div>
+
+      <!-- Row 4: الأسعار + الضريبة -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block;">سعر التكلفة (ج.م)</label>
+          <input type="number" id="srvCost" class="form-control" placeholder="0.00" step="0.5" style="height:40px; font-size:14px; font-weight:600;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block; color:var(--primary);">سعر البيع (ج.م) *</label>
+          <input type="number" id="srvSell" class="form-control" placeholder="0.00" step="0.5" style="height:40px; font-size:15px; font-weight:800; color:#059669;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block;">خاضع للضريبة</label>
+          <select id="srvIsTaxable" class="form-control" style="height:40px; font-size:13px;">
+            <option value="1">✅ نعم (خاضع)</option>
+            <option value="0">🚫 معفى</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- بطاقة الوصفة (للأصناف التحضيرية فقط) -->
+      <div id="recipeStatusCard" style="display:none; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; font-weight:800; color:#92400e; margin-bottom:2px;">🥣 الوصفة والمكونات (Recipe / BOM)</div>
+            <div id="recipeCostLabel" style="font-size:12px; color:#78350f; font-weight:700;">لم تُضف وصفة بعد — التكلفة يدوية</div>
+          </div>
+          <div style="font-size:22px; font-weight:900; color:#d97706;" id="recipeCostBadge">—</div>
+        </div>
+        <div style="font-size:11px; color:#a16207; margin-top:4px; line-height:1.4;">لتعديل الوصفة والمكونات، اذهب لـ «المخزن ← الوصفات والتكاليف» بعد حفظ الصنف</div>
+      </div>
+
+      <!-- Row 5: المخزون وتاريخ الصلاحية (للبضائع الجاهزة فقط) -->
+      <div id="invFieldsRow" style="display:none; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px; padding:14px; background:#F0FDF4; border:1px solid #bbf7d0; border-radius:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block;">📦 الكمية بالمخزن</label>
+          <input type="number" id="srvQty" class="form-control" placeholder="0" min="0" value="0" style="height:42px; font-size:15px; font-weight:700;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block;">⚠️ حد التنبيه عند النقص</label>
+          <input type="number" id="srvLowThreshold" class="form-control" placeholder="0" min="0" value="0" style="height:42px; font-size:15px; font-weight:700;" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" style="font-weight:700; font-size:12px; margin-bottom:6px; display:block; color:#b45309;">📅 تاريخ انتهاء الصلاحية</label>
+          <input type="date" id="srvExpiry" class="form-control" style="height:42px; font-size:13px; font-weight:700;" />
+        </div>
+      </div>
+
+      <!-- قسم أحجام ومقاسات الصنف (سنجل / دبل / تريبل) -->
+      <div id="sizesSectionWrapper" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:14px; margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <label style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:13px; color:var(--primary); cursor:pointer; margin:0;">
+            <input type="checkbox" id="srvHasSizes" onchange="toggleSizesSection()" style="width:17px; height:17px;" />
+            <span>📏 هذا الصنف يتوفر بعدة أحجام ومقاسات (مثل سنجل، دبل، تريبل...)</span>
+          </label>
+        </div>
+
+        <div id="sizesContent" style="display:none; margin-top:12px;">
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted);">قوالب جاهزة:</span>
+            <button type="button" class="btn btn-sm btn-outline" onclick="applySizePreset('coffee')" style="font-size:11px; padding:3px 10px;">☕ أحجام قهوة (سنجل / دبل / تريبل)</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="applySizePreset('cups')" style="font-size:11px; padding:3px 10px;">🥤 أحجام أكواب (صغير / وسط / كبير)</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addCustomSizeRow()" style="font-size:11px; padding:3px 12px; margin-right:auto;">+ إضافة حجم مخصص</button>
+          </div>
+
+          <div style="font-size:11px; color:#0369a1; background:#e0f2fe; padding:8px 12px; border-radius:6px; margin-bottom:10px; line-height:1.5;">
+            💡 <strong>المعادلة النسبية التلقائية:</strong> بمجرد كتابة سعر بيع الحجم الأكبر، يتم احتساب التكلفة ومضاعف استهلاك الوصفة (الريسيبي) تلقائياً بناءً على النسبة بين سعر الحجم وسعر البيع الأساسي.
+          </div>
+
+          <div id="sizesListContainer" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Size rows rendered here -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer" style="flex-shrink: 0; padding: 16px 22px; background: var(--bg); border-top: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn btn-outline" onclick="closeModal('serviceModal')" style="padding:10px 24px; font-weight:700;">إلغاء</button>
+      <button class="btn btn-success" onclick="saveService()" style="padding:10px 32px; font-weight:800; font-size:15px;">حفظ الصنف</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let categories = [];
+let allServices = [];
+let currentCategoryId = 0; // 0 = All
+
+function navigate(page){ window.electron.navigate(page); }
+function goBack(){ window.electron.navigate('main-dashboard.html'); }
+
+function showToast(msg,type='success'){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');
+  t.className=`toast toast-${type}`;
+  t.innerHTML=`<span>${type==='success'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':type==='error'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v2m0 4h.01M12 3l9 16H3L12 3z"/></svg>'}</span> ${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.animation='toastOut 0.3s ease forwards';setTimeout(()=>t.remove(),300);},3000);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function fmt(n){ return Number(n||0).toFixed(2); }
+
+// ─── Categories ───────────────────────────────────────────────────────────────
+async function loadCategories() {
+  const res = await window.db.query('SELECT * FROM service_categories ORDER BY id',[]);
+  if(res.success){
+    categories = res.data;
+    renderCategories();
+    populateCategorySelect();
+  }
+}
+
+function renderCategories() {
+  const container = document.getElementById('categoryList');
+  let html = `
+    <div class="cat-item ${currentCategoryId===0?'active':''}" onclick="selectCategory(0, 'جميع الخدمات')">
+      <div class="cat-item-name">الكل</div>
+    </div>
+  `;
+  categories.forEach(c => {
+    html += `
+      <div class="cat-item ${currentCategoryId===c.id?'active':''}" onclick="selectCategory(${c.id}, '${c.name.replace(/'/g,"\\'")}')">
+        <div class="cat-item-name">${c.name}</div>
+        <div class="cat-item-actions">
+          <button class="btn btn-sm btn-danger" style="padding:0 6px;height:22px;font-size:10px;" onclick="event.stopPropagation();deleteCategory(${c.id})">✕</button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function selectCategory(id, name) {
+  currentCategoryId = id;
+  document.getElementById('currentCategoryTitle').textContent = name;
+  renderCategories(); // update active class
+  renderServicesTable();
+}
+
+async function addCategory() {
+  const name = document.getElementById('newCatName').value.trim();
+  if(!name){ showToast('يرجى إدخال اسم القسم','error'); return; }
+  const res = await window.db.run('INSERT INTO service_categories (name) VALUES (?)',[name]);
+  if(res.success){
+    showToast('تم إضافة القسم ','success');
+    document.getElementById('newCatName').value='';
+    await loadCategories();
+  } else showToast('خطأ: '+res.error,'error');
+}
+
+async function deleteCategory(id) {
+  const result = await Swal.fire({
+    title: 'تأكيد حذف القسم',
+    text: 'هل أنت متأكد من حذف هذا القسم؟ (لن يتم حذف الخدمات المرتبطة به ولكن ستفقد تصنيفها)',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#E05252',
+    cancelButtonColor: '#94A3B8',
+    confirmButtonText: 'نعم، احذف',
+    cancelButtonText: 'إلغاء'
+  });
+  if (!result.isConfirmed) return;
+  await window.db.run('DELETE FROM service_categories WHERE id=?',[id]);
+  await window.db.run('UPDATE services SET category_id=NULL WHERE category_id=?',[id]);
+  if(currentCategoryId===id) currentCategoryId=0;
+  await loadCategories();
+  await loadServices();
+  showToast('تم الحذف','success');
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById('srvCat');
+  sel.innerHTML = '<option value="">اختر القسم</option>';
+  categories.forEach(c => {
+    sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+  });
+}
+
+async function loadServices() {
+  const res = await window.db.query(
+    'SELECT s.*, c.name as cat_name FROM services s LEFT JOIN service_categories c ON s.category_id=c.id ORDER BY s.id DESC',[]
+  );
+  if(res.success){
+    allServices = res.data;
+    
+    // Update stats
+    document.getElementById('statTotalServices').textContent = allServices.length;
+    document.getElementById('statTotalCategories').textContent = categories.length;
+
+    renderServicesTable();
+  }
+}
+
+function renderServicesTable() {
+  const tbody = document.getElementById('servicesBody');
+  const query = document.getElementById('serviceSearch').value.trim().toLowerCase();
+  
+  let filtered = allServices;
+  
+  // Filter by category
+  if(currentCategoryId !== 0){
+    filtered = filtered.filter(s => s.category_id === currentCategoryId);
+  }
+  
+  // Filter by search
+  if(query){
+    filtered = filtered.filter(s => 
+      s.name.toLowerCase().includes(query) || 
+      (s.barcode && s.barcode.toLowerCase().includes(query))
+    );
+  }
+  
+  document.getElementById('servicesCount').textContent = `${filtered.length} صنف`;
+  
+  if(!filtered.length){
+    tbody.innerHTML = '<tr><td colspan="8" class="table-empty">لا توجد خدمات مطابقة</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map((s,i) => {
+    const isReady = s.track_inventory === 1;
+    const typeBadge = isReady
+      ? `<span class="badge" style="background:#FEF3C7;color:#D97706;font-size:11px;font-weight:700;">📦 جاهزة (${s.quantity||0})</span>`
+      : `<span class="badge" style="background:#ECFDF5;color:#059669;font-size:11px;font-weight:700;">☕ تحضير</span>`;
+    const taxBadge = s.is_taxable === 0
+      ? `<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:10px;font-weight:600;">معفى</span>`
+      : '';
+
+    const imgThumb = s.image
+      ? `<img src="${s.image}" style="width:36px; height:36px; object-fit:cover; border-radius:6px; border:1px solid var(--border); vertical-align:middle; margin-left:8px; flex-shrink:0;" />`
+      : `<span style="display:inline-flex; width:36px; height:36px; border-radius:6px; background:var(--bg-secondary); align-items:center; justify-content:center; margin-left:8px; font-size:16px; flex-shrink:0;">☕</span>`;
+
+    let expiryBadge = '';
+    if (isReady && s.expiry_date) {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const exp = new Date(s.expiry_date);
+      const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) {
+        expiryBadge = `<div style="font-size:10px; font-weight:800; color:#dc2626; margin-top:2px;">⚠️ منتهي الصلاحية (${s.expiry_date})</div>`;
+      } else if (diffDays <= 7) {
+        expiryBadge = `<div style="font-size:10px; font-weight:800; color:#d97706; margin-top:2px;">⚠️ ينتهي خلال ${diffDays} يوم (${s.expiry_date})</div>`;
+      } else {
+        expiryBadge = `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">صلاحية: ${s.expiry_date}</div>`;
+      }
+    }
+
+    return `
+    <tr>
+      <td style="color:var(--text-muted);">${i+1}</td>
+      <td>
+        <div style="display:flex; align-items:center;">
+          ${imgThumb}
+          <div>
+            <div style="font-weight:700;">${s.name} ${taxBadge}</div>
+            ${expiryBadge}
+          </div>
+        </div>
+      </td>
+      <td>${typeBadge}</td>
+      <td><span class="badge badge-accent">${s.cat_name||'بدون قسم'}</span></td>
+      <td>${s.barcode?`<span class="barcode-display">${s.barcode}</span>`:'—'}</td>
+      <td style="color:var(--danger);">${fmt(s.cost_price)}</td>
+      <td style="color:var(--success);font-weight:700;font-size:14px;">${fmt(s.sell_price)}</td>
+      <td>
+        <div class="flex gap-2">
+          <button class="btn btn-sm btn-outline" onclick="editService(${s.id})">تعديل</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteService(${s.id})">حذف</button>
+        </div>
+      </td>
+    </tr>
+  `;
+  }).join('');
+}
+
+function handleServiceImageUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('حجم الصورة كبير جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUri = e.target.result;
+    document.getElementById('srvImage').value = dataUri;
+    const imgPreview = document.getElementById('srvImagePreview');
+    const placeholder = document.getElementById('srvImagePlaceholder');
+    const removeBtn = document.getElementById('srvImageRemoveBtn');
+    if (imgPreview) {
+      imgPreview.src = dataUri;
+      imgPreview.style.display = 'block';
+    }
+    if (placeholder) placeholder.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeServiceImage() {
+  document.getElementById('srvImage').value = '';
+  document.getElementById('srvImageFile').value = '';
+  const imgPreview = document.getElementById('srvImagePreview');
+  const placeholder = document.getElementById('srvImagePlaceholder');
+  const removeBtn = document.getElementById('srvImageRemoveBtn');
+  if (imgPreview) {
+    imgPreview.src = '';
+    imgPreview.style.display = 'none';
+  }
+  if (placeholder) placeholder.style.display = 'block';
+  if (removeBtn) removeBtn.style.display = 'none';
+}
+
+function toggleInvFields() {
+  const isReady = document.getElementById('srvTrackInv').value === '1';
+  document.getElementById('invFieldsRow').style.display = isReady ? 'grid' : 'none';
+  document.getElementById('recipeStatusCard').style.display = isReady ? 'none' : 'block';
+}
+
+async function loadRecipeCostForService(serviceId) {
+  if (!serviceId || !window.recipes) return;
+  try {
+    const res = await window.recipes.getForService(serviceId);
+    const lbl = document.getElementById('recipeCostLabel');
+    const badge = document.getElementById('recipeCostBadge');
+    if (res.success && res.data && res.data.items && res.data.items.length > 0) {
+      const cost = res.data.items.reduce((s, it) => s + Number(it.item_total_cost || 0), 0);
+      if (lbl) lbl.textContent = `✅ وصفة مضبوطة — تكلفة المكونات: ${fmt(cost)} ج.م`;
+      if (badge) badge.textContent = fmt(cost) + ' ج.م';
+      // Auto-fill cost field from recipe
+      const costEl = document.getElementById('srvCost');
+      if (costEl && (!costEl.value || parseFloat(costEl.value) === 0)) {
+        costEl.value = cost.toFixed(2);
+      }
+    } else {
+      if (lbl) lbl.textContent = 'لم تُضف وصفة بعد — التكلفة يدوية';
+      if (badge) badge.textContent = '—';
+    }
+  } catch(e) { console.warn('recipe load error:', e); }
+}
+
+function openServiceModal() {
+  document.getElementById('serviceModalTitle').textContent = 'إضافة صنف جديد للمنيو';
+  document.getElementById('srvId').value = '';
+  document.getElementById('srvTrackInv').value = '0';
+  document.getElementById('srvIsTaxable').value = '1';
+  toggleInvFields();
+  document.getElementById('srvName').value = '';
+  document.getElementById('srvCat').value = currentCategoryId===0?'':currentCategoryId;
+  document.getElementById('srvCost').value = '';
+  document.getElementById('srvSell').value = '';
+  document.getElementById('srvQty').value = '0';
+  document.getElementById('srvLowThreshold').value = '0';
+  const expiryEl = document.getElementById('srvExpiry');
+  if (expiryEl) expiryEl.value = '';
+  removeServiceImage();
+
+  // Reset recipe card
+  const lbl = document.getElementById('recipeCostLabel');
+  const badge = document.getElementById('recipeCostBadge');
+  if (lbl) lbl.textContent = 'لم تُضف وصفة بعد — التكلفة يدوية';
+  if (badge) badge.textContent = '—';
+
+  const autoGen = localStorage.getItem('auto_gen_barcode') === 'true';
+  const autoGenChk = document.getElementById('autoGenerateBarcode');
+  if (autoGenChk) autoGenChk.checked = autoGen;
+
+  // Reset sizes
+  document.getElementById('srvHasSizes').checked = false;
+  document.getElementById('sizesContent').style.display = 'none';
+  document.getElementById('sizesListContainer').innerHTML = '';
+
+  if (autoGen) {
+    generateBarcode();
+  } else {
+    document.getElementById('srvBarcode').value = '';
+  }
+
+  openModal('serviceModal');
+  setTimeout(() => document.getElementById('srvName').focus(), 150);
+}
+
+function generateBarcode() {
+  const rand = Math.floor(1000000000 + Math.random() * 9000000000);
+  document.getElementById('srvBarcode').value = rand;
+}
+
+function initBarcodeAutoToggle() {
+  const chk = document.getElementById('autoGenerateBarcode');
+  if (!chk) return;
+  chk.checked = localStorage.getItem('auto_gen_barcode') === 'true';
+  chk.addEventListener('change', function() {
+    localStorage.setItem('auto_gen_barcode', this.checked);
+    if (this.checked && !document.getElementById('srvBarcode').value.trim()) {
+      generateBarcode();
+    }
+  });
+}
+
+async function saveService() {
+  const id = document.getElementById('srvId').value;
+  const trackInv = parseInt(document.getElementById('srvTrackInv').value) || 0;
+  const isTaxable = parseInt(document.getElementById('srvIsTaxable').value);
+  const name = document.getElementById('srvName').value.trim();
+  const catId = document.getElementById('srvCat').value || null;
+  let barcode = document.getElementById('srvBarcode').value.trim() || null;
+  const autoGen = document.getElementById('autoGenerateBarcode')?.checked;
+  if (!barcode && autoGen) {
+    generateBarcode();
+    barcode = document.getElementById('srvBarcode').value.trim();
+  }
+  const cost = parseFloat(document.getElementById('srvCost').value) || 0;
+  const sell = parseFloat(document.getElementById('srvSell').value) || 0;
+  const qty = parseFloat(document.getElementById('srvQty').value) || 0;
+  const lowThresh = parseFloat(document.getElementById('srvLowThreshold').value) || 0;
+  const itemType = trackInv === 1 ? 'ready' : 'prepared';
+  const image = document.getElementById('srvImage').value || null;
+  const expiryDate = trackInv === 1 ? (document.getElementById('srvExpiry')?.value || null) : null;
+  
+  if(!name || sell <= 0){
+    showToast('يرجى إدخال اسم الصنف وسعر البيع','error');
+    return;
+  }
+  
+  // Check barcode uniqueness
+  if(barcode){
+    const checkRes = await window.db.queryOne('SELECT id FROM services WHERE barcode=? AND id!=?',[barcode, id||-1]);
+    if(checkRes.success && checkRes.data){
+      showToast('هذا الباركود مستخدم لصنف آخر','error');
+      return;
+    }
+  }
+  
+  let res;
+  if(id){
+    res = await window.db.run(
+      'UPDATE services SET category_id=?, name=?, barcode=?, sell_price=?, cost_price=?, track_inventory=?, quantity=?, low_stock_threshold=?, item_type=?, is_taxable=?, image=?, expiry_date=? WHERE id=?',
+      [catId, name, barcode, sell, cost, trackInv, qty, lowThresh, itemType, isTaxable, image, expiryDate, id]
+    );
+  } else {
+    res = await window.db.run(
+      'INSERT INTO services (category_id, name, barcode, sell_price, cost_price, track_inventory, quantity, low_stock_threshold, item_type, is_taxable, image, expiry_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+      [catId, name, barcode, sell, cost, trackInv, qty, lowThresh, itemType, isTaxable, image, expiryDate]
+    );
+  }
+  
+  if(res.success){
+    // حفظ أحجام الصنف إن وجدت
+    const targetId = id ? parseInt(id) : (res.data?.id || res.data?.lastInsertRowid);
+    if (targetId && window.services?.saveSizes) {
+      const hasSizes = document.getElementById('srvHasSizes')?.checked;
+      if (hasSizes) {
+        const sizeRows = Array.from(document.querySelectorAll('#sizesListContainer .size-row')).map(row => {
+          return {
+            size_name: row.querySelector('.size-name-input').value.trim(),
+            price: parseFloat(row.querySelector('.size-price-input').value) || 0,
+            cost_price: parseFloat(row.querySelector('.size-cost-input').value) || 0,
+            recipe_ratio: parseFloat(row.querySelector('.size-ratio-input').value) || 1.0,
+            barcode: row.querySelector('.size-barcode-input')?.value.trim() || null
+          };
+        }).filter(s => s.size_name && s.price > 0);
+        await window.services.saveSizes(targetId, sizeRows);
+      } else {
+        await window.services.saveSizes(targetId, []);
+      }
+    }
+
+    await loadServices();
+    if(id){
+      showToast('تم تعديل الصنف بنجاح', 'success');
+      closeModal('serviceModal');
+    } else {
+      showToast('تمت إضافة الصنف بنجاح — جاهز للصنف التالي', 'success');
+      document.getElementById('srvName').value = '';
+      document.getElementById('srvCost').value = '';
+      document.getElementById('srvSell').value = '';
+      document.getElementById('srvQty').value = '0';
+      document.getElementById('srvLowThreshold').value = '0';
+      document.getElementById('srvId').value = '';
+      const expiryEl = document.getElementById('srvExpiry');
+      if (expiryEl) expiryEl.value = '';
+      removeServiceImage();
+
+      const lbl = document.getElementById('recipeCostLabel');
+      const badge = document.getElementById('recipeCostBadge');
+      if (lbl) lbl.textContent = 'لم تُضف وصفة بعد — التكلفة يدوية';
+      if (badge) badge.textContent = '—';
+
+      if (autoGen) {
+        generateBarcode();
+      } else {
+        document.getElementById('srvBarcode').value = '';
+      }
+      document.getElementById('srvName').focus();
+    }
+  } else {
+    showToast('خطأ: '+res.error,'error');
+  }
+}
+
+async function editService(id) {
+  const s = allServices.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('serviceModalTitle').textContent = 'تعديل: ' + s.name;
+  document.getElementById('srvId').value = s.id;
+  document.getElementById('srvTrackInv').value = s.track_inventory ? '1' : '0';
+  document.getElementById('srvIsTaxable').value = (s.is_taxable === 0 || s.is_taxable === null) ? (s.is_taxable === 0 ? '0' : '1') : '1';
+  toggleInvFields();
+  document.getElementById('srvName').value = s.name;
+  document.getElementById('srvCat').value = s.category_id || '';
+  document.getElementById('srvBarcode').value = s.barcode || '';
+  document.getElementById('srvCost').value = s.cost_price;
+  document.getElementById('srvSell').value = s.sell_price;
+  document.getElementById('srvQty').value = s.quantity || 0;
+  document.getElementById('srvLowThreshold').value = s.low_stock_threshold || 0;
+
+  // Load image
+  const imgVal = s.image || '';
+  document.getElementById('srvImage').value = imgVal;
+  const imgPreview = document.getElementById('srvImagePreview');
+  const placeholder = document.getElementById('srvImagePlaceholder');
+  const removeBtn = document.getElementById('srvImageRemoveBtn');
+  if (imgVal) {
+    imgPreview.src = imgVal;
+    imgPreview.style.display = 'block';
+    placeholder.style.display = 'none';
+    removeBtn.style.display = 'inline-block';
+  } else {
+    imgPreview.src = '';
+    imgPreview.style.display = 'none';
+    placeholder.style.display = 'block';
+    removeBtn.style.display = 'none';
+  }
+
+  // Load expiry date
+  const expiryEl = document.getElementById('srvExpiry');
+  if (expiryEl) expiryEl.value = s.expiry_date || '';
+
+  // Load recipe cost if it's a prepared item
+  if (!s.track_inventory) {
+    loadRecipeCostForService(s.id);
+  }
+
+  // Load sizes if any
+  try {
+    if (window.services?.getSizes) {
+      const sRes = await window.services.getSizes(s.id);
+      if (sRes.success && sRes.data && sRes.data.length > 0) {
+        document.getElementById('srvHasSizes').checked = true;
+        document.getElementById('sizesContent').style.display = 'block';
+        renderSizeRows(sRes.data);
+      } else {
+        document.getElementById('srvHasSizes').checked = false;
+        document.getElementById('sizesContent').style.display = 'none';
+        document.getElementById('sizesListContainer').innerHTML = '';
+      }
+    }
+  } catch(e) {
+    console.warn('Error loading sizes:', e);
+  }
+
+  openModal('serviceModal');
+}
+
+async function deleteService(id) {
+  const result = await Swal.fire({
+    title: 'تأكيد حذف الصنف',
+    text: 'هل أنت متأكد من حذف هذا الصنف نهائياً؟',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#E05252',
+    cancelButtonColor: '#94A3B8',
+    confirmButtonText: 'نعم، احذف',
+    cancelButtonText: 'إلغاء'
+  });
+  if (!result.isConfirmed) return;
+  await window.db.run('DELETE FROM services WHERE id=?',[id]);
+  showToast('تم الحذف','success');
+  await loadServices();
+}
+
+// ─── Service Sizes Management ───────────────────────────────────────────
+function toggleSizesSection() {
+  const chk = document.getElementById('srvHasSizes');
+  const box = document.getElementById('sizesContent');
+  if (!box) return;
+  box.style.display = chk.checked ? 'block' : 'none';
+  if (chk.checked && document.querySelectorAll('#sizesListContainer .size-row').length === 0) {
+    applySizePreset('coffee');
+  }
+}
+
+function applySizePreset(type) {
+  const baseSell = parseFloat(document.getElementById('srvSell').value) || 25;
+  const baseCost = parseFloat(document.getElementById('srvCost').value) || 0;
+  let presets = [];
+  if (type === 'coffee') {
+    presets = [
+      { size_name: 'سنجل', price: baseSell, cost_price: baseCost, recipe_ratio: 1.0, is_default: 1 },
+      { size_name: 'دبل', price: Math.round(baseSell * 1.7), cost_price: +(baseCost * 1.7).toFixed(2), recipe_ratio: 1.7, is_default: 0 },
+      { size_name: 'تريبل', price: Math.round(baseSell * 2.3), cost_price: +(baseCost * 2.3).toFixed(2), recipe_ratio: 2.3, is_default: 0 }
+    ];
+  } else {
+    presets = [
+      { size_name: 'صغير', price: baseSell, cost_price: baseCost, recipe_ratio: 1.0, is_default: 1 },
+      { size_name: 'وسط', price: Math.round(baseSell * 1.35), cost_price: +(baseCost * 1.35).toFixed(2), recipe_ratio: 1.35, is_default: 0 },
+      { size_name: 'كبير', price: Math.round(baseSell * 1.65), cost_price: +(baseCost * 1.65).toFixed(2), recipe_ratio: 1.65, is_default: 0 }
+    ];
+  }
+  renderSizeRows(presets);
+}
+
+function addCustomSizeRow(data = {}) {
+  const container = document.getElementById('sizesListContainer');
+  if (!container) return;
+  const baseSell = parseFloat(document.getElementById('srvSell').value) || 20;
+  const baseCost = parseFloat(document.getElementById('srvCost').value) || 0;
+  
+  const sizeName = data.size_name || '';
+  const price = data.price !== undefined ? data.price : baseSell;
+  const ratio = data.recipe_ratio !== undefined ? data.recipe_ratio : (baseSell > 0 ? +(price / baseSell).toFixed(3) : 1.0);
+  const cost = data.cost_price !== undefined ? data.cost_price : +(baseCost * ratio).toFixed(2);
+  const barcode = data.barcode || '';
+
+  const div = document.createElement('div');
+  div.className = 'size-row';
+  div.style.cssText = 'display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1.2fr auto; gap:8px; align-items:center; background:#fff; padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.04);';
+  div.innerHTML = `
+    <div>
+      <label style="font-size:10px; font-weight:700; color:var(--text-muted); display:block;">اسم الحجم</label>
+      <input type="text" class="form-control size-name-input" value="${escapeHtml(sizeName)}" placeholder="مثال: سنجل / دبل..." style="height:34px; font-size:13px; font-weight:700;" />
+    </div>
+    <div>
+      <label style="font-size:10px; font-weight:700; color:#059669; display:block;">سعر البيع (ج.م) *</label>
+      <input type="number" step="0.5" class="form-control size-price-input" value="${price}" oninput="onSizePriceChange(this)" style="height:34px; font-size:13px; font-weight:800; color:#059669;" />
+    </div>
+    <div>
+      <label style="font-size:10px; font-weight:700; color:#b45309; display:block;" title="نسبة مضاعفة كميات الوصفة والمكونات">مضاعف الريسيبي</label>
+      <input type="number" step="0.05" class="form-control size-ratio-input" value="${ratio}" oninput="onSizeRatioChange(this)" style="height:34px; font-size:13px; font-weight:700;" />
+    </div>
+    <div>
+      <label style="font-size:10px; font-weight:700; color:var(--danger); display:block;" title="التكلفة المحسوبة تلقائياً بالنسبية">سعر التكلفة</label>
+      <input type="number" step="0.1" class="form-control size-cost-input" value="${cost}" style="height:34px; font-size:13px; font-weight:700; color:var(--danger);" />
+    </div>
+    <div>
+      <label style="font-size:10px; font-weight:700; color:var(--text-muted); display:block;">باركود الحجم</label>
+      <input type="text" class="form-control size-barcode-input" value="${escapeHtml(barcode)}" placeholder="اختياري" style="height:34px; font-size:12px; font-family:monospace;" />
+    </div>
+    <div style="padding-top:14px;">
+      <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger); border-color:#fca5a5; padding:4px 8px; font-weight:bold;" onclick="this.closest('.size-row').remove()" title="حذف هذا الحجم">✕</button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function renderSizeRows(sizes = []) {
+  const container = document.getElementById('sizesListContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!sizes || sizes.length === 0) return;
+  sizes.forEach(s => addCustomSizeRow(s));
+}
+
+function onSizePriceChange(inputEl) {
+  const row = inputEl.closest('.size-row');
+  const sizePrice = parseFloat(inputEl.value) || 0;
+  const baseSell = parseFloat(document.getElementById('srvSell').value) || sizePrice || 1;
+  const baseCost = parseFloat(document.getElementById('srvCost').value) || 0;
+
+  if (baseSell > 0 && sizePrice > 0) {
+    const ratio = +(sizePrice / baseSell).toFixed(3);
+    const ratioInput = row.querySelector('.size-ratio-input');
+    const costInput = row.querySelector('.size-cost-input');
+
+    if (ratioInput) ratioInput.value = ratio;
+    if (costInput && baseCost > 0) {
+      costInput.value = +(baseCost * ratio).toFixed(2);
+    }
+  }
+}
+
+function onSizeRatioChange(inputEl) {
+  const row = inputEl.closest('.size-row');
+  const ratio = parseFloat(inputEl.value) || 1.0;
+  const baseCost = parseFloat(document.getElementById('srvCost').value) || 0;
+  const costInput = row.querySelector('.size-cost-input');
+  if (costInput && baseCost > 0) {
+    costInput.value = +(baseCost * ratio).toFixed(2);
+  }
+}
+
+// ─── Admin Check & Quit ───────────────────────────────────────────────────────
+async function checkAdmin() {
+  const role = sessionStorage.getItem('photoStudio_role');
+  if (role !== 'admin') {
+    showToast('هذه الصفحة متاحة للمدير فقط', 'error');
+    setTimeout(() => goBack(), 1000);
+    return false;
+  }
+  return true;
+}
+
+window.electron.onConfirmBackupBeforeQuit(() => {
+  Swal.fire({
+    title: 'إغلاق البرنامج', text: 'هل تريد إنشاء نسخة احتياطية قبل الخروج؟', icon: 'question',
+    showDenyButton: true, showCancelButton: true, confirmButtonText: 'نسخ وخروج', denyButtonText: 'خروج بدون نسخة', cancelButtonText: 'إلغاء'
+  }).then((r) => {
+    if (r.isConfirmed) window.electron.quitWithBackup();
+    else if (r.isDenied) window.electron.quitWithoutBackup();
+    else window.electron.cancelQuit();
+  });
+});
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  initBarcodeAutoToggle();
+  const isAdmin = await checkAdmin();
+  if (isAdmin) {
+    await loadCategories();
+    await loadServices();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

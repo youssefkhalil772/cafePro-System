@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>نظام كافيه برو — تسجيل الدخول</title>
+  <link rel="stylesheet" href="../styles/global.css" />
+  <!--
+    Direction: Luminous Studio Light Mode (Swiss Precision)
+    Theme: Modern, bright, clean photography studio aesthetic with crisp white card, soft slate backgrounds, and signature Leica red (#E4002B) accents.
+  -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #F4F6F9;
+      color: #0F172A;
+      font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient Warm Coffee Grid Background */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(28, 20, 16, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(28, 20, 16, 0.04) 1px, transparent 1px);
+      background-size: 36px 36px;
+      pointer-events: none;
+    }
+
+    .login-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 430px;
+      padding: 24px;
+    }
+
+    /* Cafe Brand Header */
+    .studio-brand {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .brand-aperture-wrap {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 12px;
+      border: 2px solid #D4A056;
+      border-radius: 20px;
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 24px -4px rgba(28, 20, 16, 0.15);
+      transition: all 0.25s ease;
+      overflow: hidden;
+    }
+
+    .brand-aperture-wrap:hover {
+      border-color: #BF8D42;
+      transform: scale(1.03);
+    }
+
+    .brand-aperture-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .studio-title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #1C1410;
+      margin-bottom: 4px;
+    }
+
+    .studio-tagline {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748B;
+    }
+
+    /* Precision Auth Card */
+    .auth-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 16px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 45px -10px rgba(28, 20, 16, 0.08), 0 0 1px rgba(28, 20, 16, 0.06);
+      position: relative;
+    }
+
+    .auth-card::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 28px;
+      right: 28px;
+      height: 4px;
+      background: linear-gradient(90deg, #1C1410, #D4A056, #1C1410);
+      border-radius: 4px 4px 0 0;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+
+    .card-meta-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1C1410;
+    }
+
+    .card-meta-badge {
+      font-size: 11px;
+      font-weight: 800;
+      font-family: monospace;
+      color: #D4A056;
+      background: #FAF7F2;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(212, 160, 86, 0.35);
+    }
+
+    .input-group {
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      height: 46px;
+      background: #FFFFFF;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 8px;
+      padding: 0 14px;
+      color: #0F172A;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .input-wrapper input:focus {
+      border-color: #D4A056;
+      box-shadow: 0 0 0 3px rgba(212, 160, 86, 0.2);
+    }
+
+    .input-wrapper input::placeholder {
+      color: #94A3B8;
+      font-weight: 500;
+      font-size: 13px;
+    }
+
+    /* Password Toggle Button */
+    .password-toggle-btn {
+      position: absolute;
+      left: 12px;
+      background: transparent;
+      border: none;
+      color: #64748B;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      transition: color 0.15s ease;
+    }
+
+    .password-toggle-btn:hover {
+      color: #D4A056;
+    }
+
+    /* Error Banner */
+    .auth-error-banner {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      color: #B91C1C;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auth-error-banner.show {
+      display: flex;
+    }
+
+    /* Submit Button */
+    .submit-btn {
+      width: 100%;
+      height: 48px;
+      background: #1C1410;
+      border: 1px solid rgba(212, 160, 86, 0.4);
+      border-radius: 10px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+      box-shadow: 0 6px 16px rgba(28, 20, 16, 0.2);
+    }
+
+    .submit-btn:hover {
+      background: #2C1F1A;
+      border-color: #D4A056;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(28, 20, 16, 0.3);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* Inline Loading Spinner */
+    .btn-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #D4A056;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    .submit-btn.loading .btn-spinner {
+      display: block;
+    }
+    .submit-btn.loading .btn-label {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* System Footer */
+    .auth-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+
+  <!-- Cafe Brand Header -->
+  <div class="studio-brand">
+    <div class="brand-aperture-wrap" id="logoIcon">
+      <img src="../assets/logo.png" alt="CafePro Logo" onerror="this.src='../assets/icon.png'" />
+    </div>
+    <h1 class="studio-title" id="loginTitle">كافيه ومطعم برو</h1>
+    <div class="studio-tagline">نظام إدارة الكافيهات والمطاعم ونقاط البيع السريعة</div>
+  </div>
+
+  <!-- Auth Card -->
+  <div class="auth-card">
+    <div class="card-meta">
+      <span class="card-meta-title">تسجيل الدخول للنظام</span>
+      <span class="card-meta-badge">CafePro POS v2.5</span>
+    </div>
+
+    <!-- Error Banner -->
+    <div class="auth-error-banner" id="loginError">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span id="loginErrorText"></span>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="input-group">
+        <label class="input-label" for="username">اسم المستخدم</label>
+        <div class="input-wrapper">
+          <input type="text" id="username" placeholder="أدخل اسم المستخدم" autocomplete="off" autofocus />
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="password">كلمة المرور</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" placeholder="أدخل كلمة المرور" />
+          <button type="button" class="password-toggle-btn" onclick="togglePassword()" tabindex="-1" title="إظهار / إخفاء كلمة المرور">
+            <svg id="eyeIconSvg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="loginBtn">
+        <span class="btn-label">تسجيل الدخول</span>
+        <div class="btn-spinner"></div>
+      </button>
+    </form>
+  </div>
+
+  <!-- System Footer -->
+  <div class="auth-footer">
+    نظام كافيه برو &bull; CafePro POS System &copy; 2026
+  </div>
+</div>
+</div>
+
+<!-- Quit Confirmation Modal -->
+<div class="modal-overlay" id="quitModal">
+  <div class="modal modal-sm" style="max-width:400px; background:#FFFFFF; border:1px solid #E2E8F0; color:#0F172A; border-radius:12px;">
+    <div class="modal-header" style="border-bottom:1px solid #F1F5F9; padding:16px 20px;">
+      <div class="modal-title" style="color:#0F172A; font-size:15px; font-weight:800;">إغلاق النظام</div>
+    </div>
+    <div class="modal-body" style="text-align:center; padding:20px;">
+      <p style="font-size:14px; font-weight:700; color:#0F172A; margin-bottom:6px;">هل تريد إنشاء نسخة احتياطية قبل الخروج؟</p>
+      <p style="font-size:12px; color:#64748B;">يضمن ذلك أمان بيانات الفواتير والمخزن</p>
+    </div>
+    <div class="modal-footer" style="justify-content:center; gap:8px; flex-wrap:wrap; border-top:1px solid #F1F5F9; padding:16px;">
+      <button class="btn btn-primary" onclick="sendDailyReportAndQuit()" style="width:100%; margin-bottom:6px; background:#E4002B; border-color:#E4002B;">إرسال التقرير وإنهاء</button>
+      <button class="btn btn-success" onclick="window.electron.quitWithBackup()">نسخ وخروج</button>
+      <button class="btn btn-danger" onclick="window.electron.quitWithoutBackup()">خروج بدون نسخة</button>
+      <button class="btn btn-outline" onclick="closeQuitModal()" style="border-color:#CBD5E1; color:#334155;">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/shared/common.js"></script>
+<script>
+// ─── Branding Loader ────────────────────────────────────────────────────────
+async function loadBranding() {
+  try {
+    const res = await window.db.getSettings();
+    if (res.success && res.data) {
+      const s = res.data;
+      if (s.company_name) {
+        document.getElementById('loginTitle').textContent = s.company_name;
+      }
+      if (s.logo_path) {
+        const logoUrl = await window.electron.getLogoPath(s.logo_path);
+        if (logoUrl) {
+          const iconEl = document.getElementById('logoIcon');
+          iconEl.innerHTML = `<img src="${logoUrl}" alt="Logo" />`;
+          iconEl.style.border = 'none';
+        }
+      }
+    }
+  } catch (e) {
+    /* silent fallback to default branding */
+  }
+}
+
+// ─── Password Visibility Toggle ──────────────────────────────────────────────
+function togglePassword() {
+  const input = document.getElementById('password');
+  const eyeSvg = document.getElementById('eyeIconSvg');
+  if (input.type === 'password') {
+    input.type = 'text';
+    eyeSvg.innerHTML = `
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    `;
+  } else {
+    input.type = 'password';
+    eyeSvg.innerHTML = `
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    `;
+  }
+}
+
+// ─── Login Submission ────────────────────────────────────────────────────────
+async function handleLogin(e) {
+  e.preventDefault();
+
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  if (!username || !password) {
+    showError('يرجى إدخال اسم المستخدم وكلمة المرور');
+    return;
+  }
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+  errorEl.classList.remove('show');
+
+  const allowed = await checkActivation();
+  if (!allowed) return;
+
+  try {
+    const result = await window.auth.login(username, password);
+    if (!result.success) {
+      showError(result.error || 'فشل تسجيل الدخول: تحقق من اسم المستخدم وكلمة المرور');
+      return;
+    }
+
+    const user = result.data;
+    sessionStorage.setItem('photoStudio_userId', user.userId);
+    sessionStorage.setItem('photoStudio_employeeId', user.employeeId);
+    sessionStorage.setItem('photoStudio_employeeName', user.employeeName);
+    sessionStorage.setItem('photoStudio_username', user.username);
+    sessionStorage.setItem('photoStudio_role', user.role);
+    sessionStorage.setItem('photoStudio_shiftId', user.shiftId || '');
+
+    if (user.role === 'admin') {
+      window.electron.navigate('main-dashboard.html');
+    } else if (user.shiftId) {
+      try {
+        const setRes = await window.db.getSettings();
+        if (user.role === 'cashier' && Number(setRes?.data?.cashier_lock_to_pos) === 1) {
+          window.electron.navigate('pos-invoice.html');
+        } else {
+          window.electron.navigate('main-dashboard.html');
+        }
+      } catch (e) {
+        window.electron.navigate('main-dashboard.html');
+      }
+    } else {
+      window.electron.navigate('start-shift.html');
+    }
+  } catch (err) {
+    showError('تعذر الاتصال بقاعدة البيانات');
+    console.error(err);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function showError(msg) {
+  const banner = document.getElementById('loginError');
+  const textEl = document.getElementById('loginErrorText');
+  textEl.textContent = msg;
+  banner.classList.add('show');
+  const btn = document.getElementById('loginBtn');
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+// ─── Keyboard Shortcut ───────────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+  }
+});
+
+// ─── Quit Confirmation IPC ───────────────────────────────────────────────────
+window.electron.onConfirmBackupBeforeQuit(() => {
+  document.getElementById('quitModal').classList.add('open');
+});
+
+function closeQuitModal() {
+  document.getElementById('quitModal').classList.remove('open');
+  window.electron.cancelQuit();
+}
+
+// ─── Activation Guard ────────────────────────────────────────────────────────
+async function checkActivation() {
+  try {
+    const status = await window.activation.getStatus();
+    if (status.activated) return true;
+    if (status.trialExpired) {
+      document.body.innerHTML = `
+        <div style="position:fixed; inset:0; background:#F4F6F9; display:flex; align-items:center; justify-content:center; font-family:'Cairo',sans-serif; padding:20px;">
+          <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:14px; padding:40px 32px; max-width:440px; width:100%; text-align:center; box-shadow:0 20px 45px -10px rgba(15,23,42,0.1);">
+            <div style="margin-bottom:16px; color:#E4002B;">
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h2 style="color:#0F172A; font-size:20px; font-weight:900; margin-bottom:8px;">النظام غير مفعل</h2>
+            <p style="color:#64748B; font-size:13px; line-height:1.7; margin-bottom:24px;">
+              انتهت فترة التجربة المجانية المتاحة للنظام.<br>
+              يرجى إدخال كود التفعيل للمتابعة واستخدام نظام كافيه برو.
+            </p>
+            <button onclick="window.electron.navigate('activation.html')" 
+              style="background:#E4002B; color:#fff; border:none; border-radius:8px; padding:12px 32px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; width:100%;">
+              تفعيل البرنامج الآن
+            </button>
+          </div>
+        </div>`;
+      return false;
+    }
+    if (status.daysLeft <= 3) {
+      showError(`الفترة التجريبية تنتهي خلال ${status.daysLeft} ${status.daysLeft === 1 ? 'يوم' : 'أيام'}`);
+    }
+    return true;
+  } catch (e) {
+    return true; // fail-open on activation query error
+  }
+}
+
+// ─── Initialize ──────────────────────────────────────────────────────────────
+loadBranding();
+checkActivation();
+</script>
+</body>
+</html>
