@@ -2128,13 +2128,9 @@ function buildKitchenTicketStandaloneHTML(diffItems = null) {
   <meta charset="utf-8">
   <title>بون مطبخ</title>
   <style>
-    @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html {
-      width: 80mm;
-    }
-    body {
-      width: 80mm;
+    html, body {
+      width: 100%;
       background: #fff;
       color: #000;
       direction: rtl;
@@ -2602,18 +2598,14 @@ function printAndReset() {
 function buildReceiptStandaloneHTML(inv) {
   const content = buildReceiptHTML(inv);
   return '<!DOCTYPE html>' +
-'<html lang="ar">' +
+'<html dir="rtl" lang="ar">' +
 '<head>' +
 '  <meta charset="utf-8">' +
 '  <title>فاتورة</title>' +
 '  <style>' +
-'    @page { size: 80mm auto; margin: 0; }' +
 '    * { box-sizing: border-box; margin: 0; padding: 0; }' +
-'    html {' +
-'      width: 80mm;' +
-'    }' +
-'    body {' +
-'      width: 80mm;' +
+'    html, body {' +
+'      width: 100%;' +
 '      background: #fff;' +
 '      color: #000;' +
 '      direction: rtl;' +

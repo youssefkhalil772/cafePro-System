@@ -658,15 +658,18 @@ ipcMain.handle('inventory:printBarcodeLabels', async (_, items, copies = 1) => {
 // â”€â”€â”€ File Dialog IPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // --- Thermal / Receipt Silent Print IPC ---
+// BrowserWindow width = 302px = 80mm at 96dpi, so width:100% in HTML = 80mm automatically.
+// pageSize in microns: 80mm wide x 600mm tall (thermal rolls cut at content length).
 ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
   return new Promise((resolve) => {
     try {
       const tempFile = path.join(app.getPath('temp'), `thermal_print_${Date.now()}.html`);
       fs.writeFileSync(tempFile, html, 'utf8');
 
+      // 302px = 80mm at 96dpi — forces HTML width:100% to equal exactly 80mm
       const printWin = new BrowserWindow({
-        width: 400,
-        height: 600,
+        width: 302,
+        height: 900,
         show: false,
         webPreferences: { nodeIntegration: false, contextIsolation: false, sandbox: false }
       });
@@ -679,7 +682,9 @@ ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
             silent: true,
             printBackground: true,
             color: false,
-            margins: { marginType: 'none' }
+            margins: { marginType: 'none' },
+            // 80mm wide x 600mm tall (thermal roll — printer cuts at content end)
+            pageSize: { width: 80000, height: 600000 }
           };
           if (printerName && printerName.trim()) {
             printOpts.deviceName = printerName.trim();
@@ -689,7 +694,7 @@ ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
             try { fs.unlinkSync(tempFile); } catch(e2) {}
             resolve({ success, error: err || null });
           });
-        }, 300);
+        }, 400);
       });
 
       printWin.webContents.on('did-fail-load', (e, code, desc) => {
