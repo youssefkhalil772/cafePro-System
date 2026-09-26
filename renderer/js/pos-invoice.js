@@ -2454,7 +2454,7 @@ function buildReceiptHTML(inv) {
         <div style="font-size:13px; font-weight:900; line-height:1.2; color:#000;">
           ${escapeHtml(item.service_name)}
         </div>
-        ${item.notes?.trim() ? `<div style="font-size:11px; font-weight:800; color:#333; margin-top:1px;">↳ ${escapeHtml(item.notes)}</div>` : ''}
+        ${(item.notes && item.notes.trim()) ? `<div style="font-size:11px; font-weight:800; color:#333; margin-top:1px;">↳ ${escapeHtml(item.notes.trim())}</div>` : ''}
       </td>
       <td style="text-align:center; padding:3px 1px; font-size:14px; font-weight:900; vertical-align:middle; width:38px;">
         ${item.quantity}
@@ -2555,16 +2555,20 @@ function buildReceiptHTML(inv) {
         <span>${net} ${curr}</span>
       </div>
 
-      <!-- Paid & Remaining on a single line -->
+      <!-- Paid, Change Due -->
       <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-top:2px;">
         <span>المدفوع: ${paid} ${curr}</span>
-        <span>${parseFloat(inv.remaining || 0) > 0 ? `المتبقي: ${remaining}` : `الباقي: 0.00`} ${curr}</span>
+        ${(inv.cash_received && parseFloat(inv.cash_received) > parseFloat(inv.net_total || 0)) ? `<span>المستلم: ${fmt(inv.cash_received)} ${curr}</span>` : ''}
       </div>
       ${(inv.cash_received && parseFloat(inv.cash_received) > parseFloat(inv.net_total || 0)) ? `
-      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-top:2px; color:#166534;">
-        <span>المستلم: ${fmt(inv.cash_received)} ${curr}</span>
-        <span>الفكة: ${fmt(parseFloat(inv.cash_received) - parseFloat(inv.net_total || 0))} ${curr}</span>
-      </div>` : ''}
+      <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:900; margin-top:2px; color:#166534;">
+        <span>الباقي للعميل:</span>
+        <span>${fmt(parseFloat(inv.cash_received) - parseFloat(inv.net_total || 0))} ${curr}</span>
+      </div>` : (parseFloat(inv.remaining || 0) > 0 ? `
+      <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; margin-top:2px; color:#dc2626;">
+        <span>المتبقي:</span>
+        <span>${remaining} ${curr}</span>
+      </div>` : '')}
 
       ${notesHTML}
       <div style="border-top:1px dashed #000; margin:3px 0 2px;"></div>
