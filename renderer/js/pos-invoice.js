@@ -2454,7 +2454,7 @@ function buildReceiptHTML(inv) {
         <div style="font-size:13px; font-weight:900; line-height:1.2; color:#000;">
           ${escapeHtml(item.service_name)}
         </div>
-        ${(item.notes && item.notes.trim()) ? `<div style="font-size:11px; font-weight:800; color:#333; margin-top:1px;">↳ ${escapeHtml(item.notes.trim())}</div>` : ''}
+        ${(item.notes && item.notes.trim()) ? `` : ''}
       </td>
       <td style="text-align:center; padding:3px 1px; font-size:14px; font-weight:900; vertical-align:middle; width:38px;">
         ${item.quantity}
