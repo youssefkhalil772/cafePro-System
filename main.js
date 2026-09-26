@@ -661,12 +661,17 @@ ipcMain.handle('inventory:printBarcodeLabels', async (_, items, copies = 1) => {
 ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
   return new Promise((resolve) => {
     try {
+      const tempFile = path.join(app.getPath('temp'), `thermal_print_${Date.now()}.html`);
+      fs.writeFileSync(tempFile, html, 'utf8');
+
       const printWin = new BrowserWindow({
+        width: 400,
+        height: 600,
         show: false,
-        webPreferences: { nodeIntegration: false, contextIsolation: true }
+        webPreferences: { nodeIntegration: false, contextIsolation: false, sandbox: false }
       });
 
-      printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+      printWin.loadFile(tempFile);
 
       printWin.webContents.on('did-finish-load', () => {
         setTimeout(() => {
@@ -681,19 +686,22 @@ ipcMain.handle('print:thermal', async (_, { html, printerName }) => {
           }
           printWin.webContents.print(printOpts, (success, err) => {
             printWin.destroy();
+            try { fs.unlinkSync(tempFile); } catch(e2) {}
             resolve({ success, error: err || null });
           });
-        }, 200);
+        }, 300);
       });
 
       printWin.webContents.on('did-fail-load', (e, code, desc) => {
         printWin.destroy();
+        try { fs.unlinkSync(tempFile); } catch(e2) {}
         resolve({ success: false, error: desc });
       });
 
       setTimeout(() => {
         if (!printWin.isDestroyed()) {
           printWin.destroy();
+          try { fs.unlinkSync(tempFile); } catch(e2) {}
           resolve({ success: false, error: 'Timeout' });
         }
       }, 30000);
