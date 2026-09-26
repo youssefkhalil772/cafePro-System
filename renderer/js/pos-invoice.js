@@ -2126,12 +2126,15 @@ function buildKitchenTicketStandaloneHTML(diffItems = null) {
 <html dir="rtl" lang="ar">
 <head>
   <meta charset="utf-8">
-  <title>بون مطبخ / بار</title>
+  <title>بون مطبخ</title>
   <style>
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      width: 100%;
+    html {
+      width: 80mm;
+    }
+    body {
+      width: 80mm;
       background: #fff;
       color: #000;
       direction: rtl;
@@ -2141,9 +2144,7 @@ function buildKitchenTicketStandaloneHTML(diffItems = null) {
       print-color-adjust: exact;
     }
     .thermal-page {
-      width: 70mm;
-      max-width: 100%;
-      margin: 0 auto;
+      width: 100%;
       padding: 3mm 4mm;
       box-sizing: border-box;
       direction: rtl;
@@ -2601,15 +2602,18 @@ function printAndReset() {
 function buildReceiptStandaloneHTML(inv) {
   const content = buildReceiptHTML(inv);
   return '<!DOCTYPE html>' +
-'<html dir="rtl" lang="ar">' +
+'<html lang="ar">' +
 '<head>' +
 '  <meta charset="utf-8">' +
 '  <title>فاتورة</title>' +
 '  <style>' +
 '    @page { size: 80mm auto; margin: 0; }' +
 '    * { box-sizing: border-box; margin: 0; padding: 0; }' +
-'    html, body {' +
-'      width: 100%;' +
+'    html {' +
+'      width: 80mm;' +
+'    }' +
+'    body {' +
+'      width: 80mm;' +
 '      background: #fff;' +
 '      color: #000;' +
 '      direction: rtl;' +
@@ -2619,9 +2623,7 @@ function buildReceiptStandaloneHTML(inv) {
 '      print-color-adjust: exact;' +
 '    }' +
 '    .thermal-page {' +
-'      width: 70mm;' +
-'      max-width: 100%;' +
-'      margin: 0 auto;' +
+'      width: 100%;' +
 '      padding: 3mm 4mm;' +
 '      box-sizing: border-box;' +
 '      direction: rtl;' +
